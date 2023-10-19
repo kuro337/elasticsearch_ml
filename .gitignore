@@ -1,0 +1,9 @@
+**/*env*
+**/__pycache__/
+**/Stats.egg-info
+**/SBERT.egg-info
+**/ssl
+**/ssl
+**/*db.sqlite3*
+**/*cuda*
+.vscode
