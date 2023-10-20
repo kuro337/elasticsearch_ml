@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html class="sl-theme-dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Content Recommendation System</title>
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;1,300;1,400&family=Roboto:ital,wght@0,100;0,300;0,400;1,300&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.10.0/cdn/themes/dark.css"
+    />
+
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.10.0/cdn/shoelace-autoloader.js"
+    ></script>
+  </head>
+  <body>
+    <div id="page-container">
+      <div id="header-main">Content Recommendation System</div>
+
+      <sl-button id="openModal">Show Details</sl-button>
+      <br />
+
+      <div class="buttons">
+        <sl-button id="connectButton" onclick="establishConnection()">
+          Connect
+        </sl-button>
+        <sl-button id="sendButton" onclick="sendMessage()"
+          >Send Message</sl-button
+        >
+        <sl-button id="closeButton" onclick="closeConnection()">
+          Close Connection
+        </sl-button>
+      </div>
+
+      <div class="entity-selection">
+        <sl-tab-group placement="start">
+          <sl-tab slot="nav" panel="user"><span id="ent">Users</span></sl-tab>
+          <sl-tab slot="nav" panel="post"><span id="ent">Posts</span></sl-tab>
+          <sl-tab slot="nav" panel="product"
+            ><span id="ent">Products</span></sl-tab
+          >
+          <sl-tab slot="nav" panel="interaction"
+            ><span id="ent">Interactions</span></sl-tab
+          >
+
+          <sl-tab-panel name="user">
+            <div class="entity-label">User</div>
+
+            <div id="entity-input">
+              <div class="entity-field-selection">
+                <label for="username">username</label>
+                <sl-input
+                  type="text"
+                  name="username"
+                  placeholder="Enter User Name"
+                  id="username"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="first_name">first_name</label>
+                <sl-input
+                  type="text"
+                  name="first_name"
+                  placeholder="Enter first name"
+                  id="first_name"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="last_name">last_name</label>
+                <sl-input
+                  type="text"
+                  name="last_name"
+                  placeholder="Enter last name"
+                  id="last_name"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="email">email</label>
+                <sl-input
+                  type="text"
+                  name="email"
+                  placeholder="Enter email"
+                  id="email"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="gender">gender</label>
+                <sl-input
+                  type="text"
+                  name="gender"
+                  placeholder="M, F, NA"
+                  id="gender"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="country">country</label>
+                <sl-input
+                  type="text"
+                  name="country"
+                  placeholder="Enter country"
+                  id="country"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="age">age</label>
+                <sl-input
+                  type="number"
+                  name="age"
+                  placeholder="Enter age"
+                  id="age"
+                />
+              </div>
+            </div>
+          </sl-tab-panel>
+
+          <sl-tab-panel name="interaction">
+            <div class="entity-label">Interaction</div>
+
+            <div id="entity-input">
+              <div class="entity-field-selection">
+                <label for="interaction_type">interaction_type</label>
+                <sl-input
+                  type="text"
+                  name="interaction_type"
+                  placeholder="Enter interaction type"
+                  id="interaction_type"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="post_id">post_id</label>
+                <sl-input
+                  type="text"
+                  name="post_id"
+                  placeholder="Enter post id"
+                  id="post_id"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="username">username</label>
+                <sl-input
+                  type="text"
+                  name="username"
+                  placeholder="Enter username"
+                  id="username"
+                />
+              </div>
+            </div>
+          </sl-tab-panel>
+
+          <sl-tab-panel name="product">
+            <div class="entity-label">Product</div>
+            <div id="entity-input">
+              <div class="entity-field-selection">
+                <label for="product_name">product_name</label>
+                <sl-input
+                  type="text"
+                  name="product_name"
+                  placeholder="Enter product name"
+                  id="product_name"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="category">category</label>
+                <sl-input
+                  type="string"
+                  name="category"
+                  placeholder="Enter category"
+                  id="category"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="pid">pid</label>
+                <sl-input
+                  type="number"
+                  name="pid"
+                  placeholder="Enter product ID"
+                  id="pid"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="url">url</label>
+                <sl-input
+                  type="text"
+                  name="url"
+                  placeholder="Enter product URL"
+                  id="url"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="manufacturers">manufacturers</label>
+                <sl-input
+                  type="text"
+                  name="manufacturers"
+                  placeholder="Enter manufacturers"
+                  id="manufacturers"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="last_accessed">last_accessed</label>
+                <sl-input
+                  type="date"
+                  name="last_accessed"
+                  placeholder="Enter last accessed date"
+                  id="last_accessed"
+                />
+              </div>
+            </div>
+          </sl-tab-panel>
+
+          <sl-tab-panel name="post">
+            <div class="entity-label">Post</div>
+            <div id="entity-input">
+              <div class="entity-field-selection">
+                <label for="lang">lang</label>
+                <sl-input
+                  type="text"
+                  name="lang"
+                  placeholder="Enter language"
+                  id="lang"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="title">title</label>
+                <sl-input
+                  type="text"
+                  name="title"
+                  placeholder="Enter Post Title"
+                  id="title"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="short_title">short_title</label>
+                <sl-input
+                  type="text"
+                  name="short_title"
+                  placeholder="Enter short title"
+                  id="short_title"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="description">description</label>
+                <sl-input
+                  type="text"
+                  name="description"
+                  placeholder="Enter description"
+                  id="description"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="author">author</label>
+                <sl-input
+                  type="text"
+                  name="author"
+                  placeholder="Enter author"
+                  id="author"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="tags">tags</label>
+                <sl-input
+                  type="text"
+                  name="tags"
+                  placeholder="Enter tags"
+                  id="tags"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="post_id">post_id</label>
+                <sl-input
+                  type="text"
+                  name="post_id"
+                  placeholder="Enter post id"
+                  id="post_id"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="component">component</label>
+                <sl-input
+                  type="text"
+                  name="component"
+                  placeholder="Enter component"
+                  id="component"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="dynamic_path">dynamic_path</label>
+                <sl-input
+                  type="text"
+                  name="dynamic_path"
+                  placeholder="Enter dynamic path"
+                  id="dynamic_path"
+                />
+              </div>
+              <div class="entity-field-selection">
+                <label for="render_func">render_func</label>
+                <sl-input
+                  type="text"
+                  name="render_func"
+                  placeholder="Enter render function"
+                  id="render_func"
+                />
+              </div>
+            </div>
+          </sl-tab-panel>
+        </sl-tab-group>
+      </div>
+
+      <div id="myModal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <div id="content">
+            <div class="subheader">Content Recommendation System</div>
+            <div id="description">
+              <div class="components">
+                <ul>
+                  <li>UI - Interacts with Backend</li>
+                  <li>Elasticsearch Service - Distributed Cluster</li>
+                  <li>ML Service - Vertically Scaling Server</li>
+                  <li>Backend - Python Web Server</li>
+                </ul>
+              </div>
+              <div>
+                <span class="es">Elasticsearch Cluster</span> stores Data for
+                Entities - <em class="it">Users, Posts , Interactions.</em>
+              </div>
+              <div>
+                Events such as
+                <em class="it">Page Visits , Views , Likes</em> are captured and
+                sent to the Backend
+              </div>
+              <br />
+              <div>
+                These events go to the <strong>Backend</strong> - a
+                <span class="py">Python Web Server</span> that asynchronously
+                receives events and inserts them into the Elasticsearch Service.
+              </div>
+              <div>
+                This Web Server is a
+                <span class="hi">non-blocking multi-process</span> server that
+                handles concurrent requests.
+                <span class="es">Gunicorn</span> handles creating multiple
+                processes/workers on a single thread.
+                <span class="web">Uvicorn</span> and
+                <span class="web">FastAPI</span> handle concurrent connections
+                and requests on a single thread by using async programming.
+              </div>
+              <div>
+                The <span class="es">Elasticsearch Service</span> provides
+                utilities for Converting documents into Vector Embeddings using
+                any model we prefer - I chose <span class="ml">SBERT</span> for
+                this.
+              </div>
+              <br />
+
+              <div>
+                Between SBERT, BERT , and USE - BERT is a foundational model
+                optimized for Classification Tasks. SBERT is optimized for
+                Similarity tasks and lower latency - hence for a Real-Time
+                recommendation System I chose it.
+              </div>
+              <br />
+
+              <div>
+                So events on the UI - are sent to the Web Server - which uses
+                the ML Service to create Embeddings - and store them into
+                Elasticsearch.
+              </div>
+              <div>
+                We can then utilize these embeddings attached to every Document
+                for a variety of tasks - like knn Search or Neural Network based
+                Recommendation Systems.
+              </div>
+              <br />
+
+              <div>
+                In this system - we use the Vectors for a
+                <span class="es">Content Recommendation System</span> - which is
+                implemented using a
+                <span class="es">Document Reranking algorithm.</span>
+              </div>
+              <div>
+                Initial ranking is done using a
+                <span class="ml">General Linear Model</span> - to determine
+                relevant posts for a user using the various properties of Users
+                and Posts.
+              </div>
+              <div>
+                The <span class="ml">GLM Regression Model</span> might return to
+                us a set of the top 100 posts based on the users' metadata - we
+                then rerank these posts using the Vector Embeddings and serve
+                the most relevant 10% of posts to the user.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import {
+        WebSocketClient,
+        generateEntityHtml,
+        User,
+        Post,
+        Product,
+        Interaction,
+      } from "./bundle/index.js";
+
+      const postHtml = generateEntityHtml(new Post());
+
+      const productHtml = generateEntityHtml(new Product());
+
+      console.log(postHtml);
+
+      console.log(productHtml);
+
+      var client = new WebSocketClient();
+
+      window.establishConnection = function () {
+        client.establishConnection();
+      };
+
+      window.sendMessage = function sendMessage() {
+        client.sendMessage("Hello, server!");
+      };
+
+      window.closeConnection = function () {
+        client.closeConnection();
+      };
+    </script>
+
+    <script>
+      var modal = document.getElementById("myModal");
+
+      var btn = document.getElementById("openModal");
+
+      var span = document.getElementsByClassName("close")[0];
+
+      btn.onclick = function () {
+        modal.style.display = "block";
+      };
+
+      span.onclick = function () {
+        modal.style.display = "none";
+      };
+
+      window.onclick = function (event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      };
+    </script>
+  </body>
+</html>

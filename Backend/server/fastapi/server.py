@@ -1,8 +1,6 @@
 """
-Websockets Server
+Websockets + REST HTTP Server
 """
-
-
 from fastapi import FastAPI
 from fastapi import WebSocket
 
@@ -21,6 +19,11 @@ async def read_root():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    """
+    Websockets Endpoint
+    """
+    print(f"Websocket endpoint: {websocket}")
+
     await websocket.accept()
     while True:
         data = await websocket.receive_text()
@@ -28,3 +31,5 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # To run: uvicorn main:app --reload
+
+# uvicorn server:app --reload

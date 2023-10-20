@@ -13,8 +13,6 @@
   - Is BiDirectional by nature
   - Optimized for Classification and not Similarity
 
-
-
 - SBERT
   - Optimized for Similarity
   - Faster than BERT

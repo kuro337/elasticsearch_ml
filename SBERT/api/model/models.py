@@ -38,6 +38,7 @@ class User(ESDocument):
     gender: Annotated[str, StringConstraints(min_length=1)]
     country: Annotated[str, StringConstraints(min_length=2)]
     age: int
+    timestamp: Annotated[str, StringConstraints(min_length=8, strip_whitespace=True)]
     embedding: Optional[List[float]] = None
 
     def get_index_name(self) -> str:
@@ -53,6 +54,7 @@ class User(ESDocument):
                 "gender": {"type": "text"},
                 "country": {"type": "text"},
                 "age": {"type": "integer"},
+                "timestamp": {"type": "date"},
             }
         }
 
@@ -91,7 +93,7 @@ class Post(ESDocument):
     description: Annotated[str, StringConstraints(min_length=3)]
     author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     tags: Annotated[str, StringConstraints(min_length=2)]
-    date: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
+    timestamp: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     post_id: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     component: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
@@ -112,7 +114,7 @@ class Post(ESDocument):
                 "description": {"type": "text"},
                 "author": {"type": "text"},
                 "tags": {"type": "text"},
-                "date": {"type": "text"},
+                "timestamp": {"type": "date"},
                 "post_id": {"type": "text"},
                 "component": {"type": "text"},
                 "dynamic_path": {"type": "text"},

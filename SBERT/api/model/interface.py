@@ -49,8 +49,18 @@ class ESDocument(BaseModel, ABC):
             f"{k} {v}" for k, v in self.model_dump(exclude_unset=True).items()
         )
 
-    def schema(self) -> Dict:
+    def json_schema(self) -> str:
         """
         Returns the Schema of the Document
         """
-        return self.schema()
+        if hasattr(self, "embedding"):
+            if self.embedding is None:
+                return self.model_dump_json(exclude_unset=True)
+
+        return self.model_dump_json()
+
+    def dump_document(self) -> Dict:
+        """
+        Returns the Document as a Dictionary
+        """
+        return self.model_dump(exclude_unset=True)

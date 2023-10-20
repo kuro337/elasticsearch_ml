@@ -8,10 +8,11 @@ from model.interface import ESDocument
 from typing import Dict, Optional
 
 from elastic_search.exceptions.es_exceptions import ElasticsearchInsertionError
+from elasticsearch import Elasticsearch
 
 
 def insert_document(
-    self,
+    client: Elasticsearch,
     document: ESDocument,
     index_name: Optional[str] = None,
     id: Optional[str] = None,
@@ -27,8 +28,8 @@ def insert_document(
 
     try:
         # Insertion
-        response = self.client.index(
-            index=index_name, id=id, document=document.model_dump(exclude_unset=True)
+        response = client.index(
+            index=index_name, id=id, document=document.dump_document()
         )
         if response["_shards"]["failed"] > 0:
             raise ElasticsearchInsertionError(f"Failed to insert document: {response}")

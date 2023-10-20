@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "lib": ["DOM", "ESNext",],
+    "module": "ES6",
+    "target": "ES6",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,        
+    "emitDecoratorMetadata": true,          
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "composite": true,
+    "strict": true,
+    "downlevelIteration": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "types": [
+      "bun-types" 
+    ],
+  },
+  "include": ["./**/*"],
+  "exclude": ["node_modules"]
+}

@@ -4,8 +4,9 @@ ES Class function implementation to create and delete an index in Elasticsearch.
 
 import json
 from typing import Dict, Optional
-from elasticsearch import Elasticsearch, NotFoundError
+from elasticsearch import Elasticsearch, NotFoundError, BadRequestError
 from model.interface import ESDocument
+from elastic_search.exceptions.es_exceptions import ElasticsearchIndexAlreadyExists
 
 
 def create_index(
@@ -45,8 +46,14 @@ def create_index(
         }
     try:
         client.indices.create(index=index_name, body={"mappings": mappings})
+    except BadRequestError as e:
+        if e == "index_already_exists_exception":
+            raise ElasticsearchIndexAlreadyExists(
+                f"Index {index_name} already exists"
+            ) from e
     except Exception as e:
-        print(e)
+        # This will catch any other exceptions that are being raised.
+        print(f"An unexpected error occurred: {e}")
 
 
 def delete_index(client: Elasticsearch, index_name: str) -> None:
@@ -74,9 +81,20 @@ def list_indices_and_mappings(client: Elasticsearch, index: str) -> None:
     # Get all indices and their mappings
     try:
         response = client.indices.get_mapping(index=index, pretty=True)
-        print(response)
+
+        # Convert the response to a dictionary before serializing to JSON
+        if hasattr(response, "to_dict"):
+            response_dict = response.to_dict()
+        else:
+            response_dict = dict(
+                response
+            )  # This is a fallback and might not be necessary depending on the actual type of `response`
+
+        print(json.dumps(response_dict, indent=4))
     except NotFoundError as e:
-        print(e)
+        print(f"Index not found: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 def print_document_count(client: Elasticsearch, index: str) -> None:
