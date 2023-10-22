@@ -13,8 +13,11 @@ interface DecoratorMetadata {
 }
 
 export function generateEntityHtml(entity: ElasticSearchDocument): string {
-  let htmlString = `<div class="entity-label">Entity</div>
-      <div id="entity-input">`;
+  const entityName = entity.constructor.name.toLowerCase();
+
+  let htmlString = `<div class="entity-label" id=${entityName}>Entity</div>
+      <div class="entity-input" >`;
+  // name of the entity class
 
   // Get the Object Containing all Fields with @html Decorators
   const fieldMetadataObject: { [key: string]: DecoratorMetadata } =

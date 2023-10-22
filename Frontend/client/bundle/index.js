@@ -18,6 +18,11 @@ var __legacyDecorateClassTS = function (decorators, target, key, desc) {
 
 class WebSocketClient {
   webSocket = null;
+  isConnected() {
+    return (
+      this.webSocket !== null && this.webSocket.readyState === WebSocket.OPEN
+    );
+  }
   establishConnection(wsUrl) {
     if (!this.webSocket || this.webSocket.readyState === WebSocket.CLOSED) {
       this.webSocket = new WebSocket(wsUrl || "ws://localhost:8000/ws");
@@ -53,8 +58,9 @@ class WebSocketClient {
   }
 }
 function generateEntityHtml(entity) {
-  let htmlString = `<div class="entity-label">Entity</div>
-      <div id="entity-input">`;
+  const entityName = entity.constructor.name.toLowerCase();
+  let htmlString = `<div class="entity-label" id=${entityName}>Entity</div>
+      <div class="entity-input" >`;
   const fieldMetadataObject = entity.constructor._fieldMetadata || {};
   for (const property of Object.keys(entity)) {
     if (!(property in fieldMetadataObject)) {
@@ -366,10 +372,72 @@ __legacyDecorateClassTS(
   "username",
   undefined
 );
+function createEntityFromInputs(EntityClass, inputContainerSelector) {
+  const inputs = document.querySelectorAll(
+    `${inputContainerSelector} sl-input`
+  );
+  const entity = new EntityClass();
+  inputs.forEach((inputElement) => {
+    const input = inputElement;
+    const fieldName = input.name;
+    const value = parseInputValue(input.value, fieldName, entity);
+    if (fieldName in entity) {
+      entity[fieldName] = value;
+    }
+  });
+  const entityName = EntityClass.name;
+  return {
+    entity: entityName,
+    data: entity,
+  };
+}
+function parseInputValue(value, fieldName, entity) {
+  if (typeof entity[fieldName] === "number") {
+    return Number(value);
+  }
+  if (Array.isArray(entity[fieldName])) {
+    if (typeof entity[fieldName][0] === "number") {
+      return value.split(",").map(Number);
+    }
+    return value.split(",");
+  }
+  return value;
+}
+function mapEntityStrToClass(entityStr) {
+  let classConstructor = null;
+  let inputSelector = "";
+  switch (entityStr.toLowerCase()) {
+    case "user":
+      classConstructor = User;
+      inputSelector = "#user-input";
+      break;
+    case "product":
+      classConstructor = Product;
+      inputSelector = "#product-input";
+      break;
+    case "post":
+      classConstructor = Post;
+      inputSelector = "#post-input";
+      break;
+    case "interaction":
+      classConstructor = Interaction;
+      inputSelector = "#interaction-input";
+      break;
+    default:
+      console.error("Invalid entity type:", entityStr);
+      return null;
+  }
+  return {
+    classConstructor,
+    inputSelector,
+  };
+}
 
 console.log("Hello via Bun!");
 export {
+  mapEntityStrToClass,
   generateEntityHtml,
+  createEntityFromInputs,
   WebSocketClient,
   User,
   Product,

@@ -8,3 +8,7 @@ export * from "./src/entity/models/post";
 export * from "./src/entity/models/product";
 export * from "./src/entity/models/user";
 export * from "./src/entity/models/interaction";
+
+export { createEntityFromInputs } from "./src/entity/serializeEntity";
+
+export { mapEntityStrToClass } from "./src/entity/entityMapper";

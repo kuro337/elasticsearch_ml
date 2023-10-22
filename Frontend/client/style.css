@@ -7,6 +7,22 @@ body {
   font-size: 1.5rem;
 }
 
+/* Scrollbar styles */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.entity-main-container {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Entity Input Styles */
 #page-container {
   display: flex;
   flex-direction: column;
@@ -23,7 +39,7 @@ body {
 }
 
 #content-wrap {
-  max-width: 800px;
+  max-width: 75%;
   width: 100%;
 }
 
@@ -42,14 +58,27 @@ body {
   font-size: 1.5rem;
   font-weight: 300;
   margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.entity-field-selection label {
+  flex-shrink: 0;
+  width: 250px;
+  text-align: right;
 }
 
 .entity-field-selection {
   display: flex;
-  gap: 0.5rem;
+  justify-content: center; /* Add this to center the content */
+  align-items: center; /* Keeps items vertically aligned in case of multi-line content */
+  gap: 1.5rem; /* gap between label and input */
+  font-size: 1rem;
+  margin-right: 50%;
 }
 
-#entity-input {
+.entity-input {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -119,7 +148,7 @@ body {
   margin-bottom: 1rem;
 }
 
-#description {
+#content-description {
   font-size: 1.25rem;
   line-height: 1.6;
   display: flex;
@@ -127,6 +156,13 @@ body {
   gap: 1rem;
   margin-left: 10%;
   margin-right: 10%;
+}
+
+/* Entity JSON Styles */
+
+.entity-json-div {
+  width: 200px;
+  font-size: 1.25rem;
 }
 
 button {
@@ -145,12 +181,46 @@ button:hover {
   background-color: #3700b3;
 }
 
-/* Scrollbar styles */
-body::-webkit-scrollbar {
-  display: none;
+/* Socket Status */
+
+.socket-status {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 4rem;
+}
+#connection-status-dot {
+  width: 15px;
+  height: 15px;
+  background-color: red; /* default to red */
+  border-radius: 50%; /* make it round */
+  position: relative; /* needed for 'before' pseudo-element positioning */
 }
 
-body {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.disconnected {
+  animation: glowRed 2s infinite alternate; /* use red glow effect */
+}
+
+.connected {
+  animation: glowGreen 2s infinite alternate; /* use green glow effect */
+}
+
+/* Glowing effect */
+@keyframes glowRed {
+  from {
+    box-shadow: 0 0 5px #ff0000; /* shadow size and color when animation starts */
+  }
+  to {
+    box-shadow: 0 0 20px #ff0000; /* shadow size and color when animation ends */
+  }
+}
+
+@keyframes glowGreen {
+  from {
+    box-shadow: 0 0 5px #00ff00; /* shadow size and color when animation starts */
+  }
+  to {
+    box-shadow: 0 0 20px #00ff00; /* shadow size and color when animation ends */
+  }
 }

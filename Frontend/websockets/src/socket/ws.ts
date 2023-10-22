@@ -4,6 +4,12 @@
 export class WebSocketClient {
   private webSocket: WebSocket | null = null;
 
+  public isConnected(): boolean {
+    return (
+      this.webSocket !== null && this.webSocket.readyState === WebSocket.OPEN
+    );
+  }
+
   public establishConnection(wsUrl?: string): void {
     if (!this.webSocket || this.webSocket.readyState === WebSocket.CLOSED) {
       this.webSocket = new WebSocket(wsUrl || "ws://localhost:8000/ws");

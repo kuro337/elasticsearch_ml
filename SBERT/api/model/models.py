@@ -130,7 +130,7 @@ class Interaction(ESDocument):
 
     interaction_type: Annotated[str, StringConstraints(min_length=1)]
     post_id: Annotated[str, StringConstraints(min_length=1)]
-    timestamp: Annotated[str, StringConstraints(min_length=1)]
+    timestamp: Optional[Annotated[str, StringConstraints(min_length=1)]] = None
     username: Annotated[str, StringConstraints(min_length=1)]
     embedding: Optional[List[float]] = None
 

@@ -35,7 +35,6 @@
         <sl-button id="connectButton" onclick="establishConnection()">
           Connect
         </sl-button>
-
         <sl-button id="sendButton" onclick="sendMessage()"
           >Send Message</sl-button
         >
@@ -59,7 +58,7 @@
             <sl-tab-panel name="user">
               <div class="entity-label">User</div>
 
-              <div class="entity-input" id="user-input">
+              <div id="entity-input">
                 <div class="entity-field-selection">
                   <label for="username">username</label>
                   <sl-input
@@ -129,7 +128,7 @@
             <sl-tab-panel name="interaction">
               <div class="entity-label">Interaction</div>
 
-              <div class="entity-input" id="interaction-input">
+              <div id="entity-input">
                 <div class="entity-field-selection">
                   <label for="interaction_type">interaction_type</label>
                   <sl-input
@@ -162,7 +161,7 @@
 
             <sl-tab-panel name="product">
               <div class="entity-label">Product</div>
-              <div class="entity-input" id="product-input">
+              <div id="entity-input">
                 <div class="entity-field-selection">
                   <label for="product_name">product_name</label>
                   <sl-input
@@ -222,7 +221,7 @@
 
             <sl-tab-panel name="post">
               <div class="entity-label">Post</div>
-              <div id="post-input" class="entity-input">
+              <div id="entity-input">
                 <div class="entity-field-selection">
                   <label for="lang">lang</label>
                   <sl-input
@@ -318,15 +317,8 @@
           </sl-tab-group>
         </div>
 
-        <div id="json-display" class="entity-json-div">
-          <pre><code id="json-code"></code></pre>
-        </div>
-
-        <div class="socket-status">
-          <div>
-            <sl-button id="send-button" onclick="sendEntity()">Send</sl-button>
-          </div>
-          <div class="disconnected" id="connection-status-dot"></div>
+        <div class="entity-json-div">
+          <div>JSON Representation</div>
         </div>
       </div>
 
@@ -425,245 +417,17 @@
       import {
         WebSocketClient,
         generateEntityHtml,
-        createEntityFromInputs,
-        mapEntityStrToClass,
         User,
         Post,
         Product,
         Interaction,
       } from "./bundle/index.js";
-
-      var currentEntity = "user";
-
-      const currentEntityState = document.querySelector("sl-tab-group");
-
-      function updateJsonDisplay(entity) {
-        const jsonStr = JSON.stringify(entity, null, 2);
-        const codeElement = document.getElementById("json-code");
-        if (codeElement) {
-          codeElement.textContent = jsonStr;
-        } else {
-          console.error("Code element not found!");
-        }
-      }
-      function clearInputs(inputContainerSelector) {
-        const inputContainer = document.querySelector(inputContainerSelector);
-        if (inputContainer) {
-          const inputs = inputContainer.querySelectorAll("sl-input");
-          inputs.forEach((input) => {
-            input.value = ""; // Clear input fields
-          });
-        }
-      }
-
-      window.sendEntity = function sendEntityUsingWebSocket() {
-        const { classConstructor, inputSelector } =
-          mapEntityStrToClass(currentEntity);
-        if (!classConstructor || !inputSelector) {
-          console.error(`${currentEntity} is not a valid System Entity.`);
-          return;
-        }
-
-        const entity = createEntityFromInputs(classConstructor, inputSelector);
-        console.log("Sending entity:", entity);
-
-        // Assuming you might want to send the entity through the WebSocket
-        client.sendMessage(JSON.stringify(entity));
-
-        clearInputs(inputSelector); // Clear all input fields
-        updateJsonDisplay(); // Clear the JSON display
-      };
-
-      // Function to create entity from inputs and update JSON display
-      function createAndDisplayEntity() {
-        const { classConstructor, inputSelector } =
-          mapEntityStrToClass(currentEntity);
-        if (!classConstructor || !inputSelector) {
-          console.error(`${classConstructor} is not a valid System Entity.`);
-          return;
-        }
-
-        const entity = createEntityFromInputs(classConstructor, inputSelector);
-        console.log(entity);
-        updateJsonDisplay(entity);
-      }
-
-      // This function is triggered on input changes and also updates the JSON display
-      function handleInputChange() {
-        createAndDisplayEntity();
-      }
-
-      // Add event listeners to inputs for live updates
-      function addLiveUpdateToInputs(inputContainerSelector) {
-        const inputContainer = document.querySelector(inputContainerSelector);
-        if (!inputContainer) {
-          console.error(
-            "No input container found with the selector:",
-            inputContainerSelector
-          );
-          return;
-        }
-
-        const inputs = inputContainer.querySelectorAll("sl-input");
-        if (inputs.length === 0) {
-          console.error(
-            "No inputs found in the container:",
-            inputContainerSelector
-          );
-          return;
-        }
-
-        inputs.forEach((inputElement) => {
-          inputElement.addEventListener("input", handleInputChange);
-        });
-      }
-
-      currentEntityState.addEventListener("sl-tab-show", (event) => {
-        currentEntity = event.detail.name;
-        console.log("Current Entity Changed to ", currentEntity);
-
-        const entityMapping = mapEntityStrToClass(currentEntity);
-        if (!entityMapping || !entityMapping.inputSelector) {
-          console.error(`${currentEntity} is not a valid System Entity.`);
-          return;
-        }
-
-        addLiveUpdateToInputs(entityMapping.inputSelector);
-        createAndDisplayEntity(); // Create and display entity when tab is changed
-      });
-
-      // Initialize for the first entity
-      addLiveUpdateToInputs("#user-input");
-      createAndDisplayEntity();
-
-      // Expose the function to window to be accessible from the HTML button
-      window.createEntityFromInputs = createAndDisplayEntity;
-
-      /* WebSocket Functionality */
-
-      function updateConnectionStatus() {
-        const isConnected = client.isConnected();
-
-        if (isConnected) {
-          connectionDot.style.backgroundColor = "green";
-          connectionDot.classList.remove("disconnected"); // Remove the 'disconnected' class
-          connectionDot.classList.add("connected"); // Add the 'connected' class
-          console.log("Connection is active"); // Log connection active
-        } else {
-          connectionDot.style.backgroundColor = "red";
-          connectionDot.classList.remove("connected"); // Remove the 'connected' class
-          connectionDot.classList.add("disconnected"); // Add the 'disconnected' class
-        }
-      }
-
-      // Other functions and WebSocket logic remain unchanged...
-      var client = new WebSocketClient();
-      const connectionDot = document.getElementById("connection-status-dot");
-
-      // window.establishConnection = function () {
-      // client.establishConnection();
-      //};
-
-      window.establishConnection = function () {
-        client.establishConnection();
-        // start checking the connection status every second after the connection is established
-        setInterval(updateConnectionStatus, 5000); // check every second
-      };
-
-      window.sendMessage = function sendMessage() {
-        client.sendMessage("Hello, server!");
-      };
-
-      window.closeConnection = function () {
-        client.closeConnection();
-      };
-
-      //updateConnectionStatus();
-    </script>
-
-    <!-- <script type="module">
-      import {
-        WebSocketClient,
-        generateEntityHtml,
-        createEntityFromInputs,
-        mapEntityStrToClass,
-        User,
-        Post,
-        Product,
-        Interaction,
-      } from "./bundle/index.js";
-
-      var currentEntity = "user";
-
-      const currentEntityState = document.querySelector("sl-tab-group");
-
-      currentEntityState.addEventListener("sl-tab-show", (event) => {
-        console.log(event.detail);
-        currentEntity = event.detail.name;
-        console.log("Curr Entity Changed to ", currentEntity);
-      });
-
-      window.createEntityFromInputs = function () {
-        const { classConstructor, inputSelector } =
-          mapEntityStrToClass(currentEntity);
-        console.log(classConstructor, inputSelector);
-
-        if (!classConstructor || !inputSelector) {
-          console.error(`${classConstructor} is not a valid System Entity.`);
-          return;
-        }
-
-        const entity = createEntityFromInputs(classConstructor, inputSelector);
-        const jsonStr = JSON.stringify(entity, null, 2);
-        console.log(jsonStr);
-
-        const codeElement = document.getElementById("json-code");
-        if (codeElement) {
-          // Insert the JSON string inside the <code> element
-          codeElement.textContent = jsonStr;
-        } else {
-          console.error("Code element not found!");
-        }
-      };
-
-      function printFields(inputContainerSelector) {
-        const inputContainer = document.querySelector(inputContainerSelector);
-
-        if (!inputContainer) {
-          console.error(
-            "No input container found with the selector:",
-            inputContainerSelector
-          );
-          return;
-        }
-
-        const inputs = inputContainer.querySelectorAll("sl-input");
-
-        if (inputs.length === 0) {
-          console.log(
-            "No inputs found in the container:",
-            inputContainerSelector
-          );
-          return;
-        }
-
-        inputs.forEach((inputElement) => {
-          // `sl-input` uses property `value`, not the attribute, so we need to access it as a property of the element
-          const name = inputElement.getAttribute("name"); // name is an attribute, so getAttribute works
-          const value = inputElement.value; // value is a property, so we access it directly
-          console.log(`${name}: ${value}`);
-        });
-      }
-
-      window.printcurrObj = function () {
-        printFields("#interaction-input");
-      };
 
       const postHtml = generateEntityHtml(new Post());
 
       const productHtml = generateEntityHtml(new Product());
 
-      // console.log(postHtml);
+      console.log(postHtml);
 
       console.log(productHtml);
 
@@ -680,7 +444,7 @@
       window.closeConnection = function () {
         client.closeConnection();
       };
-    </script> -->
+    </script>
 
     <script>
       var modal = document.getElementById("myModal");
