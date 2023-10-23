@@ -14,7 +14,7 @@ source glmenv310/bin/activate
 # To return to System Interpretor
 deactivate
 
-pip install pandas scikit-learn pylint pydantic
+pip install pandas scikit-learn pylint pydantic joblib 
 
 # Check python-multipart
 

@@ -34,32 +34,26 @@ from model.models import User, Post, Interaction
 import pandas as pd
 
 from utils.prepare import (
-    prepare_model_dataframe,
-    perform_feature_engineering,
-    get_encoded_column_names,
     prepare_dataframe_from_documents,
     drop_irrelevant_columns_config,
-    prepare_data_for_training_and_scoring,
 )
 
+from utils.dataframes import compare_dataframe_columns
+from utils.sample_docs import users, posts, interactions
+
 from utils.models import (
-    DataModelMapping,
     DocumentGLMConfig,
     DateDifferenceFeatureConfig,
     InteractionTypeConfig,
-    Entity,
-    Mapping,
     EntityColumns,
     CategoricalVariableConfig,
     RelevancyConfig,
     ScoringConfig,
 )
 
-from utils.dataframes import compare_dataframe_columns
+from cache.save_model import save_model
 
-from utils.sample_docs import users, posts, interactions
-
-from scoring.train_model import train_and_evaluate, train_and_evaluate_config
+from scoring.train_model import train_and_evaluate_config
 
 from features.feature_engineering import (
     apply_date_difference_feature,
@@ -77,18 +71,14 @@ from features.feature_engineering import (
 print("Loading and Merging the Data\n")
 
 # ________________
+# @Config
 
 # Entity ESDoc Class Configs for GLM
 # Works using List[ESDoc] Directly such as User, Post , Interaction , Product
-
 # ________________
 
 # ---------
-
-# GLM Configs
-
-# Define Configuration for GLM Model Here
-
+# @GLMConfigs
 # ---------
 entity_a_config = DocumentGLMConfig(doc_list=users, merge_key="username")
 entity_b_config = DocumentGLMConfig(doc_list=posts, merge_key="post_id")
@@ -142,9 +132,13 @@ include_columns = RelevancyConfig(
     target="viewed",
 )
 
-# Maintains State of Original Data and State of Data After Feature Engineering
-# We do One Hot Encoding (New Cols for Categorical Data)
-# Feature Engineering (New Cols for Date Difference , Post Age , etc.)
+"""
+Represents State of the Entire GLM Regression Model for our Dataset
+
+@Actions
+- We do One Hot Encoding (New Cols for Categorical Data)
+- Feature Engineering (New Cols for Date Difference , Post Age , etc.)
+"""
 model_state_mapping = ScoringConfig(
     target_variable="viewed",
     entity_a=User,
@@ -208,6 +202,8 @@ merged_df_one_encode_copy = merged_df_one_encode.copy()
 print("Printing Columns Before Dropping\n\n")
 print(merged_df_one_encode.columns)
 
+# Copies of cols from Original Data for Insights from Scoring.
+# Add additional columns if needed such as Lang, Gender, etc.
 og_users = merged_df_one_encode["user_username"]
 og_posts = merged_df_one_encode["post_post_id"]
 
@@ -219,9 +215,14 @@ compare_dataframe_columns(scoring_df, training_df, "Scoring Data", "Training Dat
 
 
 print("Printed Relevant Columns\n\n")
+
+### PERFORM TRAINING
 # TRAIN ESDoc Data
 lr_c, metrics_c = train_and_evaluate_config(training_df, target_column="viewed")
 print(metrics_c)
+
+save_model(lr_c, "cache/logistic_regression_model.joblib")
+
 
 for metric, value in metrics_c.items():
     print(f"{metric}: {value}")
@@ -252,28 +253,6 @@ print(
 # Ensure 'viewed' column is dropped since it's the target
 features_for_scoring = scoring_df.drop(columns=["viewed"])
 
-# CONFIRM COLUMNS MATCH FOR TRAINING AND FIT
-print("\n------------------- Column Matching Verification -------------------\n")
-print("Columns used for model training:")
-training_columns = training_df.drop(columns=["viewed"]).columns
-print(training_columns)
-
-print("\nColumns in data used for scoring/predictions:")
-scoring_columns = features_for_scoring.columns
-print(scoring_columns)
-
-# Check if both have the same set of columns
-if set(training_columns) == set(scoring_columns):
-    print("\nColumns match: Yes")
-else:
-    print("\nColumns match: No")
-    # If there's a mismatch, you can display the differing columns for debugging
-    missing_in_scoring = set(training_columns) - set(scoring_columns)
-    missing_in_training = set(scoring_columns) - set(training_columns)
-    print("\nColumns present in training but missing in scoring:", missing_in_scoring)
-    print("\nColumns present in scoring but missing in training:", missing_in_training)
-
-print("\n--------------------------------------------------------------------\n")
 
 print("Scoring Model")
 # Now, use the trained model to predict probabilities and pass it the SCORING DATA (new/unseen)
@@ -293,13 +272,11 @@ scores = predicted_probabilities[:, 1]
 # Add the scores back to the original dataframe copy
 features_for_scoring["score"] = scores
 
-# Add debug prints to understand the structure of your DataFrame
-print("\nDebug: Columns in features_for_scoring\n")
-print(features_for_scoring.columns)  # This will list all columns in your DataFrame
+print("\nDebug: Columns in features_for_scoring\n", features_for_scoring.columns)
 print("\nDebug: Top 5 rows in features_for_scoring\n")
-print(features_for_scoring.head())  # This will print the first 5 rows of your DataFrame
+print(features_for_scoring.head())
 
-# If you want to examine user-post scores, you can group the data by username and post_id and then calculate average scores
+# Getting User Scores for Each Post
 user_post_scores = (
     features_for_scoring.groupby(["user_username", "post_post_id"])["score"]
     .mean()
@@ -309,26 +286,27 @@ user_post_scores = (
 print("\nUser-Post Scores\n")
 print(user_post_scores)
 
-# To create a user-post matrix, you can pivot the table
+# User-Post Matrix
 user_post_score_matrix = user_post_scores.pivot(
     index="post_post_id", columns="user_username", values="score"
 )
 
-# Fill NaN values with 0 or any other identifier for no interaction
+# Fill NaN values
 user_post_score_matrix = user_post_score_matrix.fillna(0)
 
 print("\nUser-Post Score Matrix\n")
 print(user_post_score_matrix)
 
-# If you want to print scores for a specific user, e.g., 'JohnDoe'
-john_doe_scores = features_for_scoring[
-    features_for_scoring["user_username"] == "JohnDoe"
+# Printing Scores for Specific User
+single_user_scores = features_for_scoring[
+    features_for_scoring["user_username"] == "Fiero Martin"
 ][["post_post_id", "score"]]
 
-print("\nJohnDoe's Scores\n")
-print(john_doe_scores)
+print("\nFiero Martin's Scores\n")
+print(single_user_scores)
+print("\nFiero Martin's end\n")
 
-# You can also list posts sorted by their average score
+# List Posts by Average Score
 average_scores = (
     features_for_scoring.groupby("post_post_id")["score"].mean().reset_index()
 )
@@ -347,3 +325,19 @@ print(top_10_posts)
 print(
     "EsDoc Scoring Done\n\n-----------------------------\n---------------------------\n"
 )
+
+# If we have a new User and want to return the relevant Posts that they are likely to view - we would
+
+# Create a Dataframe with the User, all Posts , and 4 Fake Interaction Rows for the User-Post
+# Pass this data as Scoring Data to the Trained Model - and get the Scores for the top 10 Posts.
+
+# Searching in ES using elasticsearch_dsl - to save the User-Post Scores
+
+# UserPostScore - Model created in Library
+# from elasticsearch_dsl import Search
+
+# def get_top_posts_for_user(username, top_n=10):
+#     s = Search(index="user_post_scores").query("match", username=username).sort({"score": {"order": "desc"}})[0:top_n]
+#     response = s.execute()
+#     for hit in response:
+#         print(hit.post_id, hit.score)  # or do something else with these

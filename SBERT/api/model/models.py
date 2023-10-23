@@ -1,5 +1,7 @@
 """
 Types for Documents
+
+Also Available https://elasticsearch-dsl.readthedocs.io/en/latest/
 """
 
 from typing import List, Optional, Dict
@@ -38,7 +40,9 @@ class User(ESDocument):
     gender: Annotated[str, StringConstraints(min_length=1)]
     country: Annotated[str, StringConstraints(min_length=2)]
     age: int
-    timestamp: Annotated[str, StringConstraints(min_length=8, strip_whitespace=True)]
+    timestamp: Annotated[
+        str, StringConstraints(min_length=8, strip_whitespace=True)
+    ] = None
     embedding: Optional[List[float]] = None
 
     def get_index_name(self) -> str:
@@ -93,7 +97,7 @@ class Post(ESDocument):
     description: Annotated[str, StringConstraints(min_length=3)]
     author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     tags: Annotated[str, StringConstraints(min_length=2)]
-    timestamp: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
+
     post_id: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     component: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
@@ -101,6 +105,9 @@ class Post(ESDocument):
     author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     render_func: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     embedding: Optional[List[float]] = None
+    timestamp: Annotated[
+        str, StringConstraints(min_length=3, strip_whitespace=True)
+    ] = None
 
     def get_index_name(self) -> str:
         return "posts"
@@ -144,6 +151,28 @@ class Interaction(ESDocument):
                 "post_id": {"type": "text"},
                 "timestamp": {"type": "date"},
                 "username": {"type": "text"},
+            }
+        }
+
+
+class UserPostScore(ESDocument):
+    """
+    User-Post Interaction
+    """
+
+    username: Annotated[str, StringConstraints(min_length=1)]
+    post_id: Annotated[str, StringConstraints(min_length=1)]
+    score: float
+
+    def get_index_name(self) -> str:
+        return "user_post_scores"
+
+    def get_mapping(self) -> Dict:
+        return {
+            "properties": {
+                "username": {"type": "text"},
+                "post_id": {"type": "text"},
+                "score": {"type": "float"},
             }
         }
 

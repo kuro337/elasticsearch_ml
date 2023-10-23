@@ -66,28 +66,6 @@ class ElasticSearchService:
                 "Connection Failed - Make sure Elasticsearch is Running."
             )
 
-    # def __init__(
-    #     self, cert_location: str = "", host: str = "localhost", port: int = 9200
-    # ):
-    #     if cert_location == "":
-    #         raise SSLCertificateNotProvided
-
-    #     try:
-    #         self.client = Elasticsearch(
-    #             [{"host": host, "port": port, "scheme": "https"}],
-    #             verify_certs=True,
-    #             ca_certs=cert_location,
-    #             basic_auth=("elastic", "password"),
-    #         )
-    #         if not self.client.ping():
-    #             raise ElasticsearchConnectionError(
-    #                 "Connection Failed - Make sure Elasticsearch is Running."
-    #             )
-    #     except Exception as e:
-    #         raise ElasticsearchConnectionError(
-    #             f"Elasticsearch Connection Error\nMake Sure Elasticsearch is Running!\n{e}"
-    #         ) from e
-
     def create_index(
         self,
         model: ESDocument | str,

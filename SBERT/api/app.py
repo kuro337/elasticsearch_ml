@@ -57,22 +57,21 @@ interaction_document = Interaction(
 documents: List[ESDocument] = [user_document, post_document, interaction_document]
 
 for doc in documents:
-    # es_service.doc_count(index=doc.get_index_name())
+    es_service.doc_count(index=doc.get_index_name())
 
-    # print("Creating index\n\n")
+    print("Creating index\n\n")
 
-    # es_service.create_index(doc, embedding=True)
+    es_service.create_index(doc, embedding=True)
 
-    # print("Listing index\n\n")
-    # es_service.list_indices_and_mappings(index=doc.get_index_name())
+    print("Listing index\n\n")
+    es_service.list_indices_and_mappings(index=doc.get_index_name())
 
-    # print("Creating Hash\n\n")
+    print("Creating Hash\n\n")
     # Generate Hash of the User Document for the Document ID
-    # user_hash = generate_hash(user_document.model_dump())
-    # doc_hash = doc.hash()
-    # print(doc_hash)
+    doc_hash = doc.hash()
+    print(doc_hash)
 
-    # print("Creating Embedding\n\n")
+    print("Creating Embedding\n\n")
     # Generate Vector<Float> Embedding from User Document and add it to User Object
     combined_embedding: List[float] = transformer.convert_doc_to_vector(doc.stringify())
     # doc.embedding = combined_embedding
