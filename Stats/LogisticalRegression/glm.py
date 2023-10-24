@@ -28,18 +28,26 @@ scoring.train_model
 train_and_evaluate
 
 """
-
-from model.models import User, Post, Interaction
+import sys
 
 import pandas as pd
+import numpy as np
+from model.models import User, Post, Interaction, UserPostScore
+
+from mock.mock_users import users
+from mock.mock_posts import posts
+from mock.mock_interactions import interactions
+
 
 from utils.prepare import (
     prepare_dataframe_from_documents,
     drop_irrelevant_columns_config,
+    extract_columns_for_retention,
+    add_columns_to_dataframe,
 )
 
+
 from utils.dataframes import compare_dataframe_columns
-from utils.sample_docs import users, posts, interactions
 
 from utils.models import (
     DocumentGLMConfig,
@@ -49,11 +57,17 @@ from utils.models import (
     CategoricalVariableConfig,
     RelevancyConfig,
     ScoringConfig,
+    RetainColumnsConfig,
+    EntityConfig,
+    MappingConfig,
+    MapScoringToOriginalData,
+    EntityScoringConfig,
 )
 
 from cache.save_model import save_model
 
 from scoring.train_model import train_and_evaluate_config
+from scoring.insights import map_scores_to_merged_df
 
 from features.feature_engineering import (
     apply_date_difference_feature,
@@ -89,7 +103,7 @@ interactions_config = DocumentGLMConfig(
     default_value="error",
 )
 
-feature_config = DateDifferenceFeatureConfig(
+date_feature_config = DateDifferenceFeatureConfig(
     start_entity=Post,
     end_entity=Interaction,
     start_time_col="timestamp",
@@ -107,7 +121,7 @@ If PK passed - ensure removal of the PK columns from Training Data (user_usernam
 """
 one_encoding_config = CategoricalVariableConfig(
     entity_a=EntityColumns(
-        entity=User, columns=["gender", "username", "country"], primary_key="username"
+        entity=User, columns=["gender", "country"], primary_key="username"
     ),
     entity_b=EntityColumns(
         entity=Post, columns=["post_id", "author", "lang"], primary_key="post_id"
@@ -122,37 +136,28 @@ binomial_config = InteractionTypeConfig(
     condition="view",
 )
 
+"""
+Columns to Include in the Model Training
+We map interaction_type=view as the Target Variable
+So make sure to NOT include interaction_type
+"""
 include_columns = RelevancyConfig(
-    entity_a=EntityColumns(entity=User, columns=["gender", "username", "country"]),
-    entity_b=EntityColumns(entity=Post, columns=["lang", "author", "post_id"]),
-    interaction=EntityColumns(
-        entity=Interaction, columns=["interaction_type", "viewed"]
-    ),
+    entity_a=EntityColumns(entity=User, columns=["gender", "country"]),
+    entity_b=EntityColumns(entity=Post, columns=["lang", "author"]),
+    # interaction=EntityColumns(
+    #     entity=Interaction, columns=["interaction_type", "viewed"]
+    # ),
     features=["post_age"],
     target="viewed",
 )
 
-"""
-Represents State of the Entire GLM Regression Model for our Dataset
-
-@Actions
-- We do One Hot Encoding (New Cols for Categorical Data)
-- Feature Engineering (New Cols for Date Difference , Post Age , etc.)
-"""
-model_state_mapping = ScoringConfig(
-    target_variable="viewed",
-    entity_a=User,
-    entity_a_pk="username",
-    entity_a_categorical_cols=["gender", "username", "country"],
-    entity_b=Post,
-    entity_b_pk="post_id",
-    entity_b_categorical_cols=["lang", "author", "post_id"],
-    model_entity=Interaction,
-    model_variance_key="interaction_type",
-    model_default_value="error",
-    model_categorical_cols=["interaction_type"],
-    feature_cols=["post_age"],
+retain_columns = RetainColumnsConfig(
+    entity_a_retain=EntityColumns(entity=User, columns=["username"]),
+    entity_b_retain=EntityColumns(entity=Post, columns=["post_id"]),
 )
+
+
+# ---------
 
 print("Merging from Doc Merge ESDoc\n")
 
@@ -162,16 +167,30 @@ merged_df_from_docs = prepare_dataframe_from_documents(
     entity_b=entity_b_config,
     entity_mapping=interactions_config,
 )
-merged_df_from_docs = apply_date_difference_feature(merged_df_from_docs, feature_config)
+
+# print(merged_df_from_docs.columns)
+
+merged_df_from_docs = apply_date_difference_feature(
+    merged_df_from_docs, date_feature_config
+)
+
+
+# print(merged_df_from_docs.columns)
+# print(f"Number of rows in merged_df_from_docs: {len(merged_df_from_docs)}")
+
 
 merged_df_interaction_binomial = map_interaction_type_config(
     merged_df_from_docs, binomial_config
 )
 
+
 merged_df_one_encode = one_hot_encode_config(
     merged_df_interaction_binomial, one_encoding_config
 )
 
+# print(merged_df_one_encode.columns)
+# print(f"Number of rows in merged_df_from_docs: {len(merged_df_one_encode)}")
+# sys.exit(1)
 
 print("Printing from Doc Merge ESDoc\n")
 print(merged_df_from_docs)
@@ -193,28 +212,30 @@ print(merged_df_from_docs.post_age)
 print("Printed from Doc Merge ESDoc\n")
 
 
-# Keep a copy of the original DataFrame for later reference
-## COPY OF ESDOC - USE THIS TO GET USER-POST SCORES - NOT FOR TRAINING
-##
-merged_df_one_encode_copy = merged_df_one_encode.copy()
-
 # DROP Columns for ESDoc Training
 print("Printing Columns Before Dropping\n\n")
 print(merged_df_one_encode.columns)
 
 # Copies of cols from Original Data for Insights from Scoring.
 # Add additional columns if needed such as Lang, Gender, etc.
-og_users = merged_df_one_encode["user_username"]
-og_posts = merged_df_one_encode["post_post_id"]
+# Pandas Dataframe maintains the index - so we can simply add it back to the DataFrame and it maps to right rows
 
-training_df = drop_irrelevant_columns_config(include_columns, merged_df_one_encode)
-scoring_df = training_df.copy()
+original_data = merged_df_from_docs.copy()
 
 
-compare_dataframe_columns(scoring_df, training_df, "Scoring Data", "Training Data")
+print("Printing VIEWED STATUS Dropping\n\n")
+print("viewed" in merged_df_one_encode.columns)
+
+retained_columns = extract_columns_for_retention(merged_df_one_encode, retain_columns)
 
 
+training_df = drop_irrelevant_columns_config(
+    merged_df_one_encode,
+    include_columns,
+)
 print("Printed Relevant Columns\n\n")
+print(training_df["viewed"].value_counts())
+
 
 ### PERFORM TRAINING
 # TRAIN ESDoc Data
@@ -234,11 +255,18 @@ coef_df = pd.DataFrame(
     {"Feature": training_df.columns.drop("viewed"), "Coefficient": lr_c.coef_[0]}
 ).sort_values(by="Coefficient", ascending=False)
 
+# Getting Odds
+coef_df = coef_df.assign(Odds_ratio=np.exp(coef_df.get("Coefficient")))
+
+
+print("\nCoefficients and Odds Ratios (sorted by value):")
+print(coef_df.to_string(index=False))
 
 # Print the sorted coefficients and the intercept
 print("\nCoefficients (sorted by value):")
 print(coef_df.to_string(index=False))
 print(f"\nIntercept: {lr_c.intercept_[0]}")
+
 
 print(
     "EsDoc Training Done\n\n-----------------------------\n---------------------------\n"
@@ -251,7 +279,7 @@ print(
 
 
 # Ensure 'viewed' column is dropped since it's the target
-features_for_scoring = scoring_df.drop(columns=["viewed"])
+features_for_scoring = training_df.drop(columns=["viewed"])
 
 
 print("Scoring Model")
@@ -261,10 +289,20 @@ predicted_probabilities = lr_c.predict_proba(features_for_scoring)
 
 print("Scored Model")
 
-# These were copies we made of primary key fields in line 210-211
-# We add them here because the exact same Model has to be used for Scoring
-features_for_scoring["user_username"] = og_users
-features_for_scoring["post_post_id"] = og_posts
+### ADDING BACK RETAINED COLUMNS FOR MAPPING SCORES
+
+features_for_scoring = add_columns_to_dataframe(
+    features_for_scoring,
+    retained_columns,
+    {"user_username": "username", "post_post_id": "post_id"},
+)
+
+
+# Define the names of entity A primary key and entity B primary key
+entity_a_pk = "username"
+entity_b_pk = "post_id"
+
+### RETAIN_END------------------------
 
 # Extract the probabilities of class 1 (viewed)
 scores = predicted_probabilities[:, 1]
@@ -272,23 +310,66 @@ scores = predicted_probabilities[:, 1]
 # Add the scores back to the original dataframe copy
 features_for_scoring["score"] = scores
 
+
+# MAPPING SCORES TO ORIGINAL DATA
+
+# print number of rows in original_data
+print(f"Number of rows in original_data: {len(original_data)}")
+print(f"Number of rows in mapped_data_with_scores: {len(features_for_scoring)}")
+
+
+mapping_scores_config = MapScoringToOriginalData(
+    entity_a=EntityScoringConfig(
+        entity=User,
+        primary_key="username",
+        display_fields=["gender", "country", "username"],
+    ),
+    entity_b=EntityScoringConfig(
+        entity=Post,
+        primary_key="post_id",
+        display_fields=["lang", "author", "post_id"],
+    ),
+    score_field="score",
+)
+
+mapped_data_with_scores = map_scores_to_merged_df(
+    original_data,
+    features_for_scoring,
+    scores_map=mapping_scores_config,
+)
+
+print(f"Number of rows in mapped_data_with_scores: {len(mapped_data_with_scores)}")
+# Number of rows in mapped_data_with_scores: 33
+
+# Check this val -> James Martin JVM Heap Allocation  0.583702
+
+# -------------------END MAPPING SCORES TO ORIGINAL DATA
+
 print("\nDebug: Columns in features_for_scoring\n", features_for_scoring.columns)
 print("\nDebug: Top 5 rows in features_for_scoring\n")
 print(features_for_scoring.head())
 
 # Getting User Scores for Each Post
 user_post_scores = (
-    features_for_scoring.groupby(["user_username", "post_post_id"])["score"]
+    features_for_scoring.groupby([entity_a_pk, entity_b_pk])["score"]
     .mean()
     .reset_index()
 )
+
+for index, row in user_post_scores.iterrows():
+    user_post_score = UserPostScore(
+        username=row[entity_a_pk],
+        post_id=row[entity_b_pk],
+        score=row["score"],
+    )
+    print(f"\nUser-Post Score:\n{user_post_score.dump_document()}")
 
 print("\nUser-Post Scores\n")
 print(user_post_scores)
 
 # User-Post Matrix
 user_post_score_matrix = user_post_scores.pivot(
-    index="post_post_id", columns="user_username", values="score"
+    index=entity_b_pk, columns=entity_a_pk, values="score"
 )
 
 # Fill NaN values
@@ -299,17 +380,15 @@ print(user_post_score_matrix)
 
 # Printing Scores for Specific User
 single_user_scores = features_for_scoring[
-    features_for_scoring["user_username"] == "Fiero Martin"
-][["post_post_id", "score"]]
+    features_for_scoring[entity_a_pk] == "Fiero Martin"
+][[entity_b_pk, "score"]]
 
 print("\nFiero Martin's Scores\n")
 print(single_user_scores)
 print("\nFiero Martin's end\n")
 
 # List Posts by Average Score
-average_scores = (
-    features_for_scoring.groupby("post_post_id")["score"].mean().reset_index()
-)
+average_scores = features_for_scoring.groupby(entity_b_pk)["score"].mean().reset_index()
 sorted_posts = average_scores.sort_values(by="score", ascending=False)
 
 print("\nSorted Posts by Scores\n")

@@ -4,14 +4,14 @@ Utils for Feature Engineering
 
 import pandas as pd
 from utils.models import (
-    DateDifferenceFeatureConfig,
+    DateDifferenceFeature,
     InteractionTypeConfig,
     CategoricalVariableConfig,
 )
 
 
 def apply_date_difference_feature(
-    df: pd.DataFrame, feature_config: DateDifferenceFeatureConfig
+    df: pd.DataFrame, feature_config: DateDifferenceFeature
 ) -> pd.DataFrame:
     """
     Applies the date difference feature engineering to the DataFrame based on the provided configuration.
@@ -30,7 +30,7 @@ def apply_date_difference_feature(
 
 
 def map_date_difference_with_config(
-    df: pd.DataFrame, feature_config: DateDifferenceFeatureConfig
+    df: pd.DataFrame, feature_config: DateDifferenceFeature
 ) -> pd.DataFrame:
     """
     Calculate the difference in days between two date columns based on the provided feature configuration
@@ -43,8 +43,7 @@ def map_date_difference_with_config(
     Returns:
     - pd.DataFrame: The DataFrame with the new difference column added.
     """
-    # Determine the column names. If the entity attributes are strings, use them directly.
-    # If they're classes, use their __name__.lower().
+    # Determine the column names.
     start_col_prefix = (
         feature_config.start_entity
         if isinstance(feature_config.start_entity, str)
@@ -59,13 +58,20 @@ def map_date_difference_with_config(
     start_col = f"{start_col_prefix}_{feature_config.start_time_col}"
     end_col = f"{end_col_prefix}_{feature_config.end_time_col}"
 
-    # Perform the date difference calculation as before
-    datetime_1 = pd.to_datetime(df[start_col])
-    datetime_2 = pd.to_datetime(df[end_col])
+    # Convert columns to datetime, this will keep NaT where dates are not parseable
+    datetime_1 = pd.to_datetime(df[start_col], errors="coerce")
+    datetime_2 = pd.to_datetime(df[end_col], errors="coerce")
+
+    # Calculate the difference, this will result in NaT where either date is NaT
     date_difference = (datetime_2 - datetime_1).dt.days
 
-    # Add the new column with the calculated difference
-    return df.assign(**{feature_config.new_col: date_difference})
+    # Replace NaT and NaN with 0 in the date difference calculation
+    date_difference = date_difference.fillna(0).astype(int)
+
+    # Assign the new column using the assign method as was done originally
+    df = df.assign(**{feature_config.new_col: date_difference})
+
+    return df
 
 
 def map_date_difference(

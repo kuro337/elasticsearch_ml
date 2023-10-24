@@ -11,7 +11,11 @@ import pandas as pd
 
 
 def train_and_evaluate_config(
-    dataframe: pd.DataFrame, target_column: str, test_size=0.2, random_state=42
+    dataframe: pd.DataFrame,
+    target_column: str,
+    test_size=0.2,
+    random_state=42,
+    debug: bool = False,
 ):
     """
     Train a logistic regression model and evaluate its performance.
@@ -46,6 +50,14 @@ def train_and_evaluate_config(
         "recall": recall_score(y_test, y_pred),
         "f1_score": f1_score(y_test, y_pred),
     }
+    if debug:
+        print("===================================")
+        print("Training Done!\n")
+        print("Metrics:\n")
+        for metric, value in metrics.items():
+            print(f"{metric}: {value}")
+        print(f"\nModel:\n{lr}\n")
+        print("===================================")
 
     return lr, metrics
 

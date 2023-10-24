@@ -3,11 +3,9 @@ Utils for Model Preparation
 """
 
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from sklearn.model_selection import train_test_split
 import pandas as pd
-
-from utils.models import DocumentGLMConfig
 
 
 from model.models import Interaction, User, Post, Product, ESDocument
@@ -18,7 +16,14 @@ from features.feature_engineering import (
     one_hot_encode,
 )
 
-from utils.models import DateDifferenceFeature, PresenceFeature, RelevancyConfig
+from utils.models import (
+    DocumentGLMConfig,
+    DateDifferenceFeature,
+    PresenceFeature,
+    RelevancyConfig,
+    RetainColumnsConfig,
+    ScoringConfig,
+)
 
 
 def prepare_data(
@@ -193,57 +198,124 @@ def get_encoded_column_names(original_columns, encoded_df):
 
 
 def drop_irrelevant_columns_config(
-    relevant_config: RelevancyConfig, encoded_df: pd.DataFrame
+    encoded_df: pd.DataFrame,
+    relevant_config: Optional[RelevancyConfig] = None,
+    state: Optional[ScoringConfig] = None,
 ) -> pd.DataFrame:
     """
-    Modify the DataFrame to drop the irrelevant columns based on the RelevancyConfig,
-    dynamically matching the entity lowercased class names with the column names.
+    @ColumnRetention
+
+    - After Merging and Performing Feature Engineering - keep relevant columns
+    - DataFrame should only contain Columns Relevant to Training and Scoring
+    - Dynamically matches based on the Entity Class Name and Fields
     """
 
-    # Extract all columns from the DataFrame
-    all_columns = set(encoded_df.columns)
+    if state is None and relevant_config is None:
+        raise ValueError("Either state or relevant_config must be provided")
 
-    # Initialize the set of relevant columns
+    all_columns = set(encoded_df.columns)
     relevant_columns = set()
 
-    # Add the target column to the set of relevant columns to ensure it's not dropped
-    if relevant_config.target:
-        relevant_columns.add(relevant_config.target)
-
-    for feature in relevant_config.features:
-        relevant_columns.add(feature)
-
-    # Helper function to match the prefixed column names
-    def match_prefixed_columns(entity_columns, entity_name):
-        # Look for columns that contain both the entity prefix and the column name
-        # If col passed is username - user_username_SomeName will be dropped
-        # But exact matches not dropped - such as user_username
-        return {
-            col
-            for col in all_columns
-            for entity_col in entity_columns
-            if f"{entity_name.lower()}_{entity_col}_" in col
-        }
-
-    # Add the relevant entity columns by matching prefixes
-    for entity_config in [
-        relevant_config.entity_a,
-        relevant_config.entity_b,
-        relevant_config.interaction,
-    ]:
+    def add_relevant_columns_from_entity(entity_config):
+        """
+        Helper function to add relevant columns from an entity configuration
+        """
         if entity_config:
-            entity_name = entity_config.entity.__name__
-            entity_columns = entity_config.columns
-            matched_columns = match_prefixed_columns(entity_columns, entity_name)
-            relevant_columns.update(matched_columns)
+            entity_name = entity_config.entity.__name__.lower()
+            for column in entity_config.columns:
+                matched_columns = {
+                    col
+                    for col in all_columns
+                    if f"{entity_name}_{column}" in col.lower()
+                }
+                relevant_columns.update(matched_columns)
 
-    # Determine the columns to drop
-    columns_to_drop = all_columns - relevant_columns
+    if state:
+        entities = [state.entity_a, state.entity_b]
+        for entity in entities:
+            if entity and entity.training_fields:
+                relevant_columns.update(entity.training_fields)
 
-    # Drop the irrelevant columns and retain the DataFrame's flexibility
-    encoded_df.drop(columns=list(columns_to_drop), inplace=True)
+        relevant_columns.add(state.target_variable)
+        relevant_columns.update(state.feature_fields)
 
-    return encoded_df
+    elif relevant_config:
+        # Use relevant_config for the configuration if state is not provided
+        add_relevant_columns_from_entity(relevant_config.entity_a)
+        add_relevant_columns_from_entity(relevant_config.entity_b)
+        add_relevant_columns_from_entity(relevant_config.interaction)
+        relevant_columns.add(relevant_config.target)
+        relevant_columns.update(relevant_config.features)
+
+    columns_to_retain = {
+        col
+        for col in all_columns
+        if any(relevant_col in col for relevant_col in relevant_columns)
+    }
+
+    columns_to_drop = all_columns - columns_to_retain
+
+    # Drop the irrelevant columns and return the modified DataFrame
+    return encoded_df.drop(columns=list(columns_to_drop))
+
+
+# def drop_irrelevant_columns_config(
+#     encoded_df: pd.DataFrame,
+#     relevant_config: Optional[RelevancyConfig] = None,
+#     state: Optional[ScoringConfig] = None,
+# ) -> pd.DataFrame:
+#     """
+#     @ColumnRetention
+
+#     - After Merging and Performing Feature Engineering - keep relevant columns
+#     - DataFrame should only contain Columns Relevant to Training and Scoring
+#     - Dynamically matches based on the Entity Class Name and Fields
+#     """
+
+#     # Extract all columns from the DataFrame
+#     all_columns = set(encoded_df.columns)
+
+#     # Initialize the set of relevant columns
+#     relevant_columns = set()
+
+#     # Add the target column to the set of relevant columns to ensure it's not dropped
+#     if relevant_config.target:
+#         relevant_columns.add(relevant_config.target)
+
+#     for feature in relevant_config.features:
+#         relevant_columns.add(feature)
+
+#     # Helper function to match the prefixed column names
+#     def match_prefixed_columns(entity_columns, entity_name):
+#         # Look for columns that contain both the entity prefix and the column name
+#         # If col passed is username - user_username_SomeName will be dropped
+#         # But exact matches not dropped - such as user_username
+#         return {
+#             col
+#             for col in all_columns
+#             for entity_col in entity_columns
+#             if f"{entity_name.lower()}_{entity_col}" in col
+#         }
+
+#     # Add the relevant entity columns by matching prefixes
+#     for entity_config in [
+#         relevant_config.entity_a,
+#         relevant_config.entity_b,
+#         relevant_config.interaction,
+#     ]:
+#         if entity_config:
+#             entity_name = entity_config.entity.__name__
+#             entity_columns = entity_config.columns
+#             matched_columns = match_prefixed_columns(entity_columns, entity_name)
+#             relevant_columns.update(matched_columns)
+
+#     # Determine the columns to drop
+#     columns_to_drop = all_columns - relevant_columns
+
+#     # Drop the irrelevant columns and retain the DataFrame's flexibility
+#     encoded_df.drop(columns=list(columns_to_drop), inplace=True)
+
+#     return encoded_df
 
 
 def prepare_data_for_training_and_scoring(
@@ -344,3 +416,76 @@ def rename_cols_based_on_classname(entity: DocumentGLMConfig) -> pd.DataFrame:
     df = df.rename(columns={col: prefix + col for col in df.columns})
 
     return df
+
+
+def extract_columns_for_retention(
+    dataframe: pd.DataFrame,
+    config: Optional[RetainColumnsConfig] = None,
+    state: Optional[ScoringConfig] = None,
+):
+    """
+    Return the Columns Required for Identifying Rows after Scoring is performed
+
+    @Usage
+    ```py
+    retain_columns_config = RetainColumnsConfig(
+    entity_a_retain=EntityColumns(entity=User, columns=["username"]),
+    entity_b_retain=EntityColumns(entity=Post, columns=["post_id"]),
+    )
+
+    retained_columns = extract_columns_for_retention(merged_df_one_encode, retain_columns_config)
+    ```
+    """
+    retained_columns = {}
+    if state:
+        a_pk = state.entity_a.primary_key
+        b_pk = state.entity_b.primary_key
+        col_a = f"{state.entity_a.entity.__name__.lower()}_{a_pk}"
+        retained_columns[col_a] = dataframe[col_a].copy()
+        col_b = f"{state.entity_b.entity.__name__.lower()}_{b_pk}"
+        retained_columns[col_b] = dataframe[col_b].copy()
+        return retained_columns
+
+    for entity_col in [config.entity_a_retain, config.entity_b_retain]:
+        for col in entity_col.columns:
+            # Construct the new column name based on the entity name and the original column name.
+            new_col_name = f"{entity_col.entity.__name__.lower()}_{col}"
+            retained_columns[new_col_name] = dataframe[new_col_name].copy()
+
+    return retained_columns
+
+
+def add_columns_to_dataframe(
+    dataframe: pd.DataFrame, columns_data: dict, rename_config: Optional[dict] = None
+) -> pd.DataFrame:
+    """
+    Return the Columns Required for Identifying Rows after Scoring is performed
+
+    @Usage
+    ```py
+    retain_columns_config = RetainColumnsConfig(
+    entity_a_retain=EntityColumns(entity=User, columns=["username"]),
+    entity_b_retain=EntityColumns(entity=Post, columns=["post_id"]),
+    )
+
+    retained_columns = extract_columns_for_retention(merged_df_one_encode, retain_columns_config)
+
+    rename_config = {user_username:username , post_post_id : post_id}
+    add_columns_to_dataframe(newdataframe , retained_columns , renameconfig)
+    ```
+    """
+    # Adding columns back to the dataframe
+    for original_col_name, col_data in columns_data.items():
+        dataframe[original_col_name] = col_data
+
+    # Renaming columns based on the provided configuration
+    if rename_config:
+        dataframe.rename(columns=rename_config, inplace=True)
+        dataframe = dataframe.rename(columns=rename_config)
+
+    print("RENAME CONFIG==========================\n")
+    print(rename_config)
+    print(dataframe.columns)
+    print("\nRENAME CONFIG==========================\n")
+
+    return dataframe  # return modified dataframe

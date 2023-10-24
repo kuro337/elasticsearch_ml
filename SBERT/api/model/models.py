@@ -136,9 +136,9 @@ class Interaction(ESDocument):
     """
 
     interaction_type: Annotated[str, StringConstraints(min_length=1)]
-    post_id: Annotated[str, StringConstraints(min_length=1)]
+    post_id: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     timestamp: Optional[Annotated[str, StringConstraints(min_length=1)]] = None
-    username: Annotated[str, StringConstraints(min_length=1)]
+    username: Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
     embedding: Optional[List[float]] = None
 
     def get_index_name(self) -> str:
