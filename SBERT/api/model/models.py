@@ -51,12 +51,12 @@ class User(ESDocument):
     def get_mapping(self) -> Dict:
         return {
             "properties": {
-                "username": {"type": "text"},
+                "username": self.multi_type("keyword", "text"),
                 "first_name": {"type": "text"},
                 "last_name": {"type": "text"},
-                "email": {"type": "text"},
-                "gender": {"type": "text"},
-                "country": {"type": "text"},
+                "email": self.multi_type("keyword", "text"),
+                "gender": self.multi_type("keyword", "text"),
+                "country": self.multi_type("keyword", "text"),
                 "age": {"type": "integer"},
                 "timestamp": {"type": "date"},
             }
@@ -98,7 +98,7 @@ class Post(ESDocument):
     author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     tags: Annotated[str, StringConstraints(min_length=2)]
 
-    post_id: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
+    post_id: Annotated[str, StringConstraints(min_length=3)]
     component: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     dynamic_path: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
@@ -115,14 +115,14 @@ class Post(ESDocument):
     def get_mapping(self) -> Dict:
         return {
             "properties": {
-                "lang": {"type": "text"},
+                "lang": self.multi_type("keyword", "text"),
                 "title": {"type": "text"},
                 "short_title": {"type": "text"},
                 "description": {"type": "text"},
                 "author": {"type": "text"},
                 "tags": {"type": "text"},
                 "timestamp": {"type": "date"},
-                "post_id": {"type": "text"},
+                "post_id": self.multi_type("keyword", "text"),
                 "component": {"type": "text"},
                 "dynamic_path": {"type": "text"},
                 "render_func": {"type": "text"},
@@ -136,7 +136,7 @@ class Interaction(ESDocument):
     """
 
     interaction_type: Annotated[str, StringConstraints(min_length=1)]
-    post_id: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
+    post_id: Annotated[str, StringConstraints(min_length=3)]
     timestamp: Optional[Annotated[str, StringConstraints(min_length=1)]] = None
     username: Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
     embedding: Optional[List[float]] = None
@@ -147,10 +147,10 @@ class Interaction(ESDocument):
     def get_mapping(self) -> Dict:
         return {
             "properties": {
-                "interaction_type": {"type": "text"},
-                "post_id": {"type": "text"},
+                "interaction_type": self.multi_type("keyword", "text"),
+                "post_id": self.multi_type("keyword", "text"),
                 "timestamp": {"type": "date"},
-                "username": {"type": "text"},
+                "username": self.multi_type("keyword", "text"),
             }
         }
 
@@ -163,6 +163,7 @@ class UserPostScore(ESDocument):
     username: Annotated[str, StringConstraints(min_length=1)]
     post_id: Annotated[str, StringConstraints(min_length=1)]
     score: float
+    timestamp: Optional[Annotated[str, StringConstraints(min_length=1)]] = None
 
     def get_index_name(self) -> str:
         return "user_post_scores"
@@ -170,9 +171,10 @@ class UserPostScore(ESDocument):
     def get_mapping(self) -> Dict:
         return {
             "properties": {
-                "username": {"type": "text"},
-                "post_id": {"type": "text"},
+                "username": self.multi_type("keyword", "text"),
+                "post_id": self.multi_type("keyword", "text"),
                 "score": {"type": "float"},
+                "timestamp": {"type": "date"},
             }
         }
 

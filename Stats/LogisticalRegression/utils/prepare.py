@@ -8,15 +8,13 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 
 
-from model.models import Interaction, User, Post, Product, ESDocument
-
-from features.feature_engineering import (
+from LogisticalRegression.features.feature_engineering import (
     map_date_difference,
     map_interaction_type,
     one_hot_encode,
 )
 
-from utils.models import (
+from LogisticalRegression.utils.models import (
     DocumentGLMConfig,
     DateDifferenceFeature,
     PresenceFeature,
@@ -483,9 +481,10 @@ def add_columns_to_dataframe(
         dataframe.rename(columns=rename_config, inplace=True)
         dataframe = dataframe.rename(columns=rename_config)
 
-    print("RENAME CONFIG==========================\n")
-    print(rename_config)
-    print(dataframe.columns)
-    print("\nRENAME CONFIG==========================\n")
+    # if state.debug:
+    #     print("RENAME CONFIG==========================\n")
+    #     print(rename_config)
+    #     print(dataframe.columns)
+    #     print("\nRENAME CONFIG==========================\n")
 
     return dataframe  # return modified dataframe

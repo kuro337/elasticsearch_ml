@@ -6,7 +6,7 @@ import pandas as pd
 
 from typing import List, Tuple, Optional
 
-from utils.models import (
+from LogisticalRegression.utils.models import (
     DocumentGLMConfig,
     DateDifferenceFeatureConfig,
     InteractionTypeConfig,
@@ -20,13 +20,14 @@ from utils.models import (
     EntityMergeConfig,
 )
 
-from features.feature_engineering import (
+
+from LogisticalRegression.features.feature_engineering import (
     apply_date_difference_feature,
     map_interaction_type_config,
     one_hot_encode_config,
 )
 
-from utils.prepare import (
+from LogisticalRegression.utils.prepare import (
     prepare_dataframe_from_documents,
     drop_irrelevant_columns_config,
     extract_columns_for_retention,
@@ -124,12 +125,13 @@ def prepare_dataset_glm(
         merged_df_interaction_binomial, one_encoding_config
     )
 
-    print(merged_df_categorical_fields_encoded.columns)
-    print("Printing VIEWED STATUS Dropping\n\n")
-    print("viewed" in merged_df_categorical_fields_encoded.columns)
-    print(
-        f"Number of rows in merged_df_from_docs: {len(merged_df_categorical_fields_encoded)}"
-    )
+    if state.debug:
+        print(merged_df_categorical_fields_encoded.columns)
+        print("Printing VIEWED STATUS Dropping\n\n")
+        print("viewed" in merged_df_categorical_fields_encoded.columns)
+        print(
+            f"Number of rows in merged_df_from_docs: {len(merged_df_categorical_fields_encoded)}"
+        )
 
     # Return the DataFrame with the Target Variable
     if copy:

@@ -38,6 +38,110 @@ body {
   text-align: center;
 }
 
+/* Recommendation System Styles */
+
+#recommendation-container {
+  margin-bottom: 3rem;
+}
+
+#recommendation-header {
+  font-family: "Lato", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 300;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.training-container {
+  margin-bottom: 4rem;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+#training-header {
+  font-family: "Lato", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 300;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+#system-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#current-user {
+  font-size: 1.25rem;
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+  margin-bottom: 2rem;
+}
+
+#current-posts {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  font-size: 1rem;
+}
+
+#recc-button {
+  margin-bottom: 2rem;
+}
+
+#recommendation-user-score {
+  display: flex;
+  gap: 1rem;
+}
+
+#current-scores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.card {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+.score-card {
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+  margin-bottom: 2rem;
+}
+
+.score-field {
+  display: flex;
+  font-size: 1rem;
+
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.score-id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-id,
+.score-value {
+  flex: 0 0 50%;
+  text-align: right;
+}
+
+.score-id {
+  text-align: left;
+}
+
 #content-wrap {
   max-width: 75%;
   width: 100%;
@@ -46,6 +150,7 @@ body {
 .buttons {
   justify-content: start;
   display: flex;
+  align-items: center; /* Add this property to center items vertically */
   gap: 1rem;
 }
 
@@ -71,9 +176,9 @@ body {
 
 .entity-field-selection {
   display: flex;
-  justify-content: center; /* Add this to center the content */
-  align-items: center; /* Keeps items vertically aligned in case of multi-line content */
-  gap: 1.5rem; /* gap between label and input */
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
   font-size: 1rem;
   margin-right: 50%;
 }
@@ -123,6 +228,9 @@ body {
   cursor: pointer;
 }
 
+#closeButton {
+  margin-right: 3rem;
+}
 .es,
 .hi {
   color: #38d9a9;
@@ -193,34 +301,34 @@ button:hover {
 #connection-status-dot {
   width: 15px;
   height: 15px;
-  background-color: red; /* default to red */
-  border-radius: 50%; /* make it round */
-  position: relative; /* needed for 'before' pseudo-element positioning */
+  background-color: red;
+  border-radius: 50%;
+  position: relative;
 }
 
 .disconnected {
-  animation: glowRed 2s infinite alternate; /* use red glow effect */
+  animation: glowRed 1s infinite alternate;
 }
 
 .connected {
-  animation: glowGreen 2s infinite alternate; /* use green glow effect */
+  animation: glowGreen 1s infinite alternate;
 }
 
 /* Glowing effect */
 @keyframes glowRed {
   from {
-    box-shadow: 0 0 5px #ff0000; /* shadow size and color when animation starts */
+    box-shadow: 0 0 2px #ff0000; /* shadow size and color when animation starts */
   }
   to {
-    box-shadow: 0 0 20px #ff0000; /* shadow size and color when animation ends */
+    box-shadow: 0 0 5px #ff0000; /* shadow size and color when animation ends */
   }
 }
 
 @keyframes glowGreen {
   from {
-    box-shadow: 0 0 5px #00ff00; /* shadow size and color when animation starts */
+    box-shadow: 0 0 2px #00ff00; /* shadow size and color when animation starts */
   }
   to {
-    box-shadow: 0 0 20px #00ff00; /* shadow size and color when animation ends */
+    box-shadow: 0 0 5px #00ff00; /* shadow size and color when animation ends */
   }
 }

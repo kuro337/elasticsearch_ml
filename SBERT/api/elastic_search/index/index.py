@@ -3,7 +3,7 @@ ES Class function implementation to create and delete an index in Elasticsearch.
 """
 
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, Type
 from elasticsearch import Elasticsearch, NotFoundError, BadRequestError
 from model.interface import ESDocument
 from elastic_search.exceptions.es_exceptions import ElasticsearchIndexAlreadyExists
@@ -11,7 +11,7 @@ from elastic_search.exceptions.es_exceptions import ElasticsearchIndexAlreadyExi
 
 def create_index(
     client: Elasticsearch,
-    model: ESDocument | str,
+    model: Union[Type[ESDocument], ESDocument, str],
     index_name: Optional[str] = None,
     embedding: bool = False,
 ) -> None:
@@ -29,13 +29,26 @@ def create_index(
 
     ```
     """
-    index_name = index_name or (
-        model.get_index_name() if isinstance(model, ESDocument) else model
-    )
+    # index_name = index_name or (
+    #     model.get_index_name() if isinstance(model, ESDocument) else model
+    # )
 
     # mappings = {"properties": {f"{key}": {"type": "text"} for key in model.keys()}}
 
-    mappings = model.get_mapping()
+    # mappings = model.get_mapping()
+
+    if isinstance(model, type) and issubclass(model, ESDocument):
+        index_name = index_name or getattr(model, "get_index_name")(model)
+        mappings = getattr(model, "get_mapping")(model)
+        print("Instance Class passed", index_name, mappings)
+
+    elif isinstance(model, ESDocument):
+        index_name = model.get_index_name()
+        mappings = model.get_mapping()
+        print("Actual instance passed", index_name)
+    # If the model is a string
+    else:
+        index_name = index_name or model
 
     if embedding:
         mappings["properties"]["embedding"] = {
@@ -54,6 +67,8 @@ def create_index(
     except Exception as e:
         # This will catch any other exceptions that are being raised.
         print(f"An unexpected error occurred: {e}")
+
+    print(f"Index {index_name} created successfully.")
 
 
 def delete_index(client: Elasticsearch, index_name: str) -> None:
@@ -116,6 +131,20 @@ def print_document_count(client: Elasticsearch, index: str) -> None:
         print(f"Document Count for index '{index}': {doc_count}")
     except NotFoundError:
         print(f"No such index: {index}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+def list_all_indices(client: Elasticsearch) -> None:
+    """
+    Lists all indices in Elasticsearch.
+
+    @param client: Elasticsearch client
+    """
+    try:
+        response = client.cat.indices(format="json")
+        for index_info in response:
+            print(index_info["index"])
     except Exception as e:
         print(f"An error occurred: {e}")
 

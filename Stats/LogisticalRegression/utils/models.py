@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Type
 from model.interface import ESDocument
 from pydantic import BaseModel, validator
-from regex import E
 import pandas as pd
 
 
@@ -97,7 +96,9 @@ class DateDifferenceFeatureConfig(Feature):
         Apply the Feature to the DataFrame and return the Modified DataFrame
 
         """
-        from features.feature_engineering import apply_date_difference_feature
+        from LogisticalRegression.features.feature_engineering import (
+            apply_date_difference_feature,
+        )
 
         return apply_date_difference_feature(data, self)
 
@@ -222,6 +223,8 @@ class ScoringConfig(BaseModel):
     feature_fields: List[str]
 
     score_field: Optional[str] = "score"
+
+    debug: Optional[bool] = False
 
 
 class CategoricalVariableConfig(BaseModel):

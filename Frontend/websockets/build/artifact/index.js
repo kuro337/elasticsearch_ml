@@ -16,8 +16,63 @@ var __legacyDecorateClassTS = function (decorators, target, key, desc) {
   return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 
+function sortPostsByScores(posts, scores) {
+  return posts.sort((a, b) => {
+    const scoreA =
+      scores.find((score) => score.post_id === a.post_id)?.score || 0;
+    const scoreB =
+      scores.find((score) => score.post_id === b.post_id)?.score || 0;
+    return scoreB - scoreA;
+  });
+}
+
+function handleRecommendationResponse(event) {
+  console.log("Received Message from Backend:");
+  if (typeof event.data === "string" && !event.data.trim().startsWith("{")) {
+    console.log("Received Plain String from Backend:", event.data);
+    return;
+  }
+  try {
+    const data = JSON.parse(event.data);
+    console.log("Data Parsed");
+    if (data && data.data && data.data.action) {
+      switch (data.data.action) {
+        case "getTopPosts":
+          let sortedPosts = data.data.results.posts || [];
+          if (data.data.results.scores) {
+            sortedPosts = sortPostsByScores(
+              sortedPosts,
+              data.data.results.scores
+            );
+          }
+          const postsEvent = new CustomEvent("topPostsReceived", {
+            detail: sortedPosts,
+          });
+          document.dispatchEvent(postsEvent);
+          if (data.data.results.scores) {
+            const scoresEvent = new CustomEvent("postScoresReceived", {
+              detail: data.data.results.scores,
+            });
+            document.dispatchEvent(scoresEvent);
+          }
+          break;
+        default:
+          console.log("Unknown action or data not in expected format");
+      }
+    } else {
+      console.log("Data format is not as expected");
+    }
+  } catch (error) {
+    console.error("Error parsing message as JSON:", error);
+  }
+}
+
 class WebSocketClient {
   webSocket = null;
+  wsUrl = "ws://localhost:8000/ws";
+  constructor(wsUrl) {
+    this.wsUrl = wsUrl || "ws://localhost:8000/ws";
+  }
   isConnected() {
     return (
       this.webSocket !== null && this.webSocket.readyState === WebSocket.OPEN
@@ -25,16 +80,14 @@ class WebSocketClient {
   }
   establishConnection(wsUrl) {
     if (!this.webSocket || this.webSocket.readyState === WebSocket.CLOSED) {
-      this.webSocket = new WebSocket(wsUrl || "ws://localhost:8000/ws");
+      this.webSocket = new WebSocket(wsUrl || this.wsUrl);
       this.webSocket.onopen = (event) => {
         console.log("Connection opened", event);
-      };
-      this.webSocket.onmessage = (event) => {
-        console.log("Received message from server:", event.data);
       };
       this.webSocket.onclose = (event) => {
         console.log("Connection closed", event);
       };
+      this.webSocket.onmessage = handleRecommendationResponse;
       this.webSocket.onerror = (error) => {
         console.log("WebSocket Error: ", error);
       };
@@ -44,9 +97,18 @@ class WebSocketClient {
   }
   sendMessage(message) {
     if (!this.webSocket || this.webSocket.readyState !== WebSocket.OPEN) {
-      console.log("Connection not opened.");
+      console.log("Connection not opened. Establishing connection...");
+      this.establishConnection();
+      this.webSocket.addEventListener("open", () => {
+        this.webSocket.send(message);
+      });
     } else {
       this.webSocket.send(message);
+    }
+  }
+  setOnMessageHandler(handler) {
+    if (this.webSocket) {
+      this.webSocket.onmessage = handler;
     }
   }
   closeConnection() {
@@ -432,10 +494,91 @@ function mapEntityStrToClass(entityStr) {
     inputSelector,
   };
 }
-
+function generatePostCard(post2) {
+  const cardStyles = `
+    border: 1px solid #555;
+    padding: 15px;
+    margin: 10px;
+    background-color: #111;
+    font-family: "Lato", sans-serif;
+    font-size: 0.75rem;
+    color: #ddd;
+    display: flex;
+    flex-direction: column;
+  `;
+  const fieldStyles = `
+    margin-bottom: 10px;
+    display: flex;
+  `;
+  const keyStyles = `
+    width: 120px;
+  `;
+  const cardHtml = `
+    <div style="${cardStyles}">
+      <div style="${fieldStyles}"><span style="${keyStyles}">Post:</span> ${post2.post_id}</div>
+      <div style="${fieldStyles}"><span style="${keyStyles}">Lang:</span> ${post2.lang}</div>
+      <div style="${fieldStyles}"><span style="${keyStyles}">Title:</span> ${post2.title}</div>
+      <div style="${fieldStyles}"><span style="${keyStyles}">Short Title:</span> ${post2.short_title}</div>
+      <div style="${fieldStyles}"><span style="${keyStyles}">Description:</span> ${post2.description}</div>
+      <div style="${fieldStyles}"><span style="${keyStyles}">Author:</span> ${post2.author}</div>
+      <div style="${fieldStyles}"><span style="${keyStyles}">Tags:</span> ${post2.tags}</div>
+    </div>
+  `;
+  return cardHtml;
+}
+function generateUserCard(user2) {
+  console.log("Received User: ", user2);
+  const cardStyles = `
+  border: 1px solid #555;
+  padding: 15px;
+  margin: 10px;
+  background-color: #222;
+  font-family: "Lato", sans-serif;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+`;
+  const fieldStyles = `
+  margin-bottom: 10px;
+  display: flex;
+`;
+  const keyStyles = `
+  width: 100px;
+`;
+  const cardHtml = `
+<div style="${cardStyles}">
+  <div style="${fieldStyles}"><span style="${keyStyles}">Username:</span> ${user2.username}</div>
+  <div style="${fieldStyles}"><span style="${keyStyles}">Name:</span> ${user2.first_name} ${user2.last_name}</div>
+  <div style="${fieldStyles}"><span style="${keyStyles}">Email:</span> ${user2.email}</div>
+  <div style="${fieldStyles}"><span style="${keyStyles}">Gender:</span> ${user2.gender}</div>
+  <div style="${fieldStyles}"><span style="${keyStyles}">Country:</span> ${user2.country}</div>
+  <div style="${fieldStyles}"><span style="${keyStyles}">Age:</span> ${user2.age}</div>
+</div>
+`;
+  return cardHtml;
+}
+function generateScoresCard(scores) {
+  let scoresList = "";
+  scores.forEach((score) => {
+    scoresList += `
+      <div class="score-field">
+        <span class="score-id">${score.post_id}</span>
+        <span class="score-value">${score.score}</span>
+      </div>`;
+  });
+  const cardHtml = `
+    <div class="card score-card">
+      ${scoresList}
+    </div>
+  `;
+  return cardHtml;
+}
 console.log("Hello via Bun!");
 export {
   mapEntityStrToClass,
+  generateUserCard,
+  generateScoresCard,
+  generatePostCard,
   generateEntityHtml,
   createEntityFromInputs,
   WebSocketClient,

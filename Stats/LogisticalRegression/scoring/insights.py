@@ -5,7 +5,7 @@ Scoring Insights from Model
 import pandas as pd
 from typing import List, Optional
 
-from utils.models import MapScoringToOriginalData
+from LogisticalRegression.utils.models import MapScoringToOriginalData
 
 
 def map_scores_to_merged_df(

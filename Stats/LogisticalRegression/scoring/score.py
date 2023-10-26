@@ -1,15 +1,19 @@
 """
 Score Model
 """
-from typing import Optional
+from typing import List, Optional
 from numpy import ndarray
 import pandas as pd
-from pyparsing import col
+
 from sklearn.linear_model import LogisticRegression
-from utils.models import ScoringConfig, MapScoringToOriginalData, EntityScoringConfig
-from utils.prepare import add_columns_to_dataframe
-from scoring.insights import map_scores_to_merged_df
-from model.models import UserPostScore
+from LogisticalRegression.utils.models import (
+    ScoringConfig,
+    MapScoringToOriginalData,
+    EntityScoringConfig,
+)
+from LogisticalRegression.utils.prepare import add_columns_to_dataframe
+from LogisticalRegression.scoring.insights import map_scores_to_merged_df
+from model.models import User, UserPostScore
 
 
 def score_data(
@@ -73,7 +77,9 @@ def map_scores_to_data(
     return mapped_data_with_scores
 
 
-def get_scores(data_with_scores: pd.DataFrame, state: ScoringConfig) -> None:
+def get_scores(
+    data_with_scores: pd.DataFrame, state: ScoringConfig
+) -> List[UserPostScore]:
     """
     @Score
     Scoring Insights from Model
@@ -87,10 +93,10 @@ def get_scores(data_with_scores: pd.DataFrame, state: ScoringConfig) -> None:
         state.entity_b.entity.__name__.lower() + "_" + state.entity_b.primary_key
     )
 
-    print("\nDebug: Columns in features_for_scoring\n", data_with_scores.columns)
-
-    print("\nDebug: Top 5 rows in features_for_scoring\n")
-    print(data_with_scores.head())
+    if state.debug:
+        print("\nDebug: Columns in features_for_scoring\n", data_with_scores.columns)
+        print("\nDebug: Top 5 rows in features_for_scoring\n")
+        print(data_with_scores.head())
 
     # Getting User Scores for Each Post
     user_post_scores = (
@@ -99,6 +105,8 @@ def get_scores(data_with_scores: pd.DataFrame, state: ScoringConfig) -> None:
         .reset_index()
     )
 
+    # @ES -> UserPostScores
+    scores_es: List[UserPostScore] = []
     # @ElasticSearch
     # > Insert Scores for Entities into ElasticSearch
     for _, row in user_post_scores.iterrows():
@@ -107,7 +115,9 @@ def get_scores(data_with_scores: pd.DataFrame, state: ScoringConfig) -> None:
             post_id=row[entity_b_pk],
             score=row["score"],
         )
-        print(f"\nUser-Post Score:\n{user_post_score.dump_document()}")
+        scores_es.append(user_post_score)
+        if state.debug:
+            print(f"\nUser-Post Score:\n{user_post_score.dump_document()}")
 
     # User-Post Matrix
     user_post_score_matrix = user_post_scores.pivot(
@@ -124,23 +134,28 @@ def get_scores(data_with_scores: pd.DataFrame, state: ScoringConfig) -> None:
         data_with_scores[entity_a_pk] == "Fiero Martin"
     ][[entity_b_pk, "score"]]
 
-    print("\nFiero Martin's Scores\n")
-    print(single_user_scores)
-    print("\nFiero Martin's end\n")
+    if state.debug:
+        print("\nFiero Martin's Scores\n")
+        print(single_user_scores)
+        print("\nFiero Martin's end\n")
 
     # List Posts by Average Score
     average_scores = data_with_scores.groupby(entity_b_pk)["score"].mean().reset_index()
     sorted_posts = average_scores.sort_values(by="score", ascending=False)
 
-    print("\nSorted Posts by Scores\n")
-    print(sorted_posts)
+    if state.debug:
+        print("\nSorted Posts by Scores\n")
+        print(sorted_posts)
 
     # For top 10 posts
     top_10_posts = sorted_posts.head(10)
 
-    print("\nTop 10 Posts\n")
-    print(top_10_posts)
+    if state.debug:
+        print("\nTop 10 Posts\n")
+        print(top_10_posts)
 
     print(
         "EsDoc Scoring Done\n--------------------------------------------------------\n"
     )
+
+    return scores_es

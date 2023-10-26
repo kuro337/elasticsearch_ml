@@ -34,9 +34,9 @@ import pandas as pd
 import numpy as np
 from model.models import User, Post, Interaction, UserPostScore
 
-from mock.mock_users import users
-from mock.mock_posts import posts
-from mock.mock_interactions import interactions
+from mock_data.mock_users import users
+from mock_data.mock_posts import posts
+from mock_data.mock_interactions import interactions
 
 
 from utils.prepare import (

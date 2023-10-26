@@ -3,7 +3,7 @@ Utils for Feature Engineering
 """
 
 import pandas as pd
-from utils.models import (
+from LogisticalRegression.utils.models import (
     DateDifferenceFeature,
     InteractionTypeConfig,
     CategoricalVariableConfig,

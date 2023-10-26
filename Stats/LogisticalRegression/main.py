@@ -8,10 +8,10 @@
 
 @Elasticsearch
 """
-from mock.mock_users import users
-from mock.mock_posts import posts
-from mock.mock_interactions import interactions
-from mock.gen_feature_set import simulate_interactions
+from mock_data.mock_users import users
+from mock_data.mock_posts import posts
+from mock_data.mock_interactions import interactions
+from mock_data.gen_feature_set import simulate_interactions
 from model.models import User, Post, Interaction
 
 from utils.models import (
@@ -93,6 +93,7 @@ model_state_mapping = ScoringConfig(
     ),
     feature_fields=["post_age"],
     score_field="score",
+    debug=True,
 )
 
 

@@ -23,7 +23,6 @@ class ESDocument(BaseModel, ABC):
         @Override
         Returning the Index Name for the Document Type
         """
-        return self.__class__.__name__.lower()
 
     @abstractmethod
     def get_mapping(self) -> Dict:
@@ -32,6 +31,38 @@ class ESDocument(BaseModel, ABC):
         Returning the Index Mapping for the Document Type
 
         """
+
+    @staticmethod
+    def multi_type(
+        primary_type: str = "keyword",
+        secondary_type: str = "text",
+        ignore_above: int = None,
+    ) -> dict:
+        """
+        @staticmethod
+        @dynamicmapping
+
+        - Creates a Multi-Field Property for the Document SubClass
+
+        @Usage
+        ```py
+        class Users(ESDocument):
+            @fields...
+            def get_mapping(self) -> Dict:
+                return {
+                    "properties": {
+                        "username": self.multi_type("text"),
+                        "post_id": self.multi_type("text"),
+                    }
+                }
+        ```
+        """
+        return {
+            "type": primary_type,
+            "fields": {
+                secondary_type: {"type": secondary_type, "ignore_above": ignore_above}
+            },
+        }
 
     def hash(self):
         """

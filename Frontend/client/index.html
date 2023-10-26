@@ -31,6 +31,30 @@
       <sl-button id="openModal">Show Details</sl-button>
       <br />
 
+      <div id="recommendation-container">
+        <div id="recommendation-header">Recommendation System</div>
+        <div id="system-content">
+          <div id="recommendation-header">Current User</div>
+          <div id="recommendation-user-score">
+            <div id="current-user"></div>
+            <div id="current-scores"></div>
+          </div>
+          <sl-button onclick="getTopPosts()" id="recc-button"
+            >Get Recommended Posts</sl-button
+          >
+          <div id="recommendation-header">Recommended Posts</div>
+
+          <div id="current-posts"></div>
+        </div>
+      </div>
+
+      <div class="training-container">
+        <div id="training-header">Training System</div>
+        <div id="train-btn-container">
+          <sl-button onclick="trainModel()">Train Model</sl-button>
+        </div>
+      </div>
+
       <div class="buttons">
         <sl-button id="connectButton" onclick="establishConnection()">
           Connect
@@ -42,6 +66,8 @@
         <sl-button id="closeButton" onclick="closeConnection()">
           Close Connection
         </sl-button>
+
+        <div class="disconnected" id="connection-status-dot"></div>
       </div>
 
       <div id="entity-main-container">
@@ -326,7 +352,6 @@
           <div>
             <sl-button id="send-button" onclick="sendEntity()">Send</sl-button>
           </div>
-          <div class="disconnected" id="connection-status-dot"></div>
         </div>
       </div>
 
@@ -425,13 +450,18 @@
       import {
         WebSocketClient,
         generateEntityHtml,
-        createEntityFromInputs,
+        createEntityFromInputs, // returns {entity:"User" , data : "userJsonObj"}
         mapEntityStrToClass,
+        generateScoresCard,
+        generateUserCard,
+        generatePostCard,
         User,
         Post,
         Product,
         Interaction,
       } from "./bundle/index.js";
+
+      /* DOM Functionality */
 
       var currentEntity = "user";
 
@@ -451,11 +481,12 @@
         if (inputContainer) {
           const inputs = inputContainer.querySelectorAll("sl-input");
           inputs.forEach((input) => {
-            input.value = ""; // Clear input fields
+            input.value = "";
           });
         }
       }
 
+      // Creates the Response to send through WS in shape {entity:"User" , data : "userJsonObj"}
       window.sendEntity = function sendEntityUsingWebSocket() {
         const { classConstructor, inputSelector } =
           mapEntityStrToClass(currentEntity);
@@ -465,13 +496,17 @@
         }
 
         const entity = createEntityFromInputs(classConstructor, inputSelector);
-        console.log("Sending entity:", entity);
+        // Structuring the message with an action and entity
+        const message = {
+          action: "sendEntity",
+          payload: entity,
+        };
+        console.log("Sending Entity Event:", message);
 
-        // Assuming you might want to send the entity through the WebSocket
-        client.sendMessage(JSON.stringify(entity));
+        client.sendMessage(JSON.stringify(message));
 
-        clearInputs(inputSelector); // Clear all input fields
-        updateJsonDisplay(); // Clear the JSON display
+        clearInputs(inputSelector);
+        updateJsonDisplay();
       };
 
       // Function to create entity from inputs and update JSON display
@@ -529,14 +564,12 @@
         }
 
         addLiveUpdateToInputs(entityMapping.inputSelector);
-        createAndDisplayEntity(); // Create and display entity when tab is changed
+        createAndDisplayEntity();
       });
 
-      // Initialize for the first entity
       addLiveUpdateToInputs("#user-input");
       createAndDisplayEntity();
 
-      // Expose the function to window to be accessible from the HTML button
       window.createEntityFromInputs = createAndDisplayEntity;
 
       /* WebSocket Functionality */
@@ -556,18 +589,14 @@
         }
       }
 
-      // Other functions and WebSocket logic remain unchanged...
-      var client = new WebSocketClient();
+      var wsUrl = "ws://localhost:8000/ws";
+
+      var client = new WebSocketClient(wsUrl);
       const connectionDot = document.getElementById("connection-status-dot");
 
-      // window.establishConnection = function () {
-      // client.establishConnection();
-      //};
-
       window.establishConnection = function () {
         client.establishConnection();
-        // start checking the connection status every second after the connection is established
-        setInterval(updateConnectionStatus, 5000); // check every second
+        setInterval(updateConnectionStatus, 1000); // check every second
       };
 
       window.sendMessage = function sendMessage() {
@@ -578,109 +607,87 @@
         client.closeConnection();
       };
 
-      //updateConnectionStatus();
-    </script>
-
-    <!-- <script type="module">
-      import {
-        WebSocketClient,
-        generateEntityHtml,
-        createEntityFromInputs,
-        mapEntityStrToClass,
-        User,
-        Post,
-        Product,
-        Interaction,
-      } from "./bundle/index.js";
-
-      var currentEntity = "user";
-
-      const currentEntityState = document.querySelector("sl-tab-group");
-
-      currentEntityState.addEventListener("sl-tab-show", (event) => {
-        console.log(event.detail);
-        currentEntity = event.detail.name;
-        console.log("Curr Entity Changed to ", currentEntity);
+      var user = new User({
+        username: "Fiero Martin",
+        first_name: "Maroni",
+        last_name: "Memes",
+        email: "petriol.minam@aol.com",
+        gender: "Female",
+        country: "Italy",
+        age: 24,
       });
 
-      window.createEntityFromInputs = function () {
-        const { classConstructor, inputSelector } =
-          mapEntityStrToClass(currentEntity);
-        console.log(classConstructor, inputSelector);
+      window.trainModel = function () {
+        const message = {
+          action: "trainModel",
+        };
 
-        if (!classConstructor || !inputSelector) {
-          console.error(`${classConstructor} is not a valid System Entity.`);
-          return;
-        }
+        console.log("Sending Train Model Action.");
 
-        const entity = createEntityFromInputs(classConstructor, inputSelector);
-        const jsonStr = JSON.stringify(entity, null, 2);
-        console.log(jsonStr);
-
-        const codeElement = document.getElementById("json-code");
-        if (codeElement) {
-          // Insert the JSON string inside the <code> element
-          codeElement.textContent = jsonStr;
-        } else {
-          console.error("Code element not found!");
-        }
+        client.sendMessage(JSON.stringify(message));
       };
 
-      function printFields(inputContainerSelector) {
-        const inputContainer = document.querySelector(inputContainerSelector);
+      // Call WS top users endpoint
+      window.getTopPosts = function getTopPostsForUser() {
+        const message = {
+          action: "getTopPosts",
+          payload: {
+            entity: "User",
+            data: user,
+          },
+        };
 
-        if (!inputContainer) {
-          console.error(
-            "No input container found with the selector:",
-            inputContainerSelector
-          );
-          return;
-        }
+        console.log("Requesting top posts for user:", message);
 
-        const inputs = inputContainer.querySelectorAll("sl-input");
+        // Send the message to the server via websocket
+        client.sendMessage(JSON.stringify(message));
+      };
 
-        if (inputs.length === 0) {
-          console.log(
-            "No inputs found in the container:",
-            inputContainerSelector
-          );
-          return;
-        }
-
-        inputs.forEach((inputElement) => {
-          // `sl-input` uses property `value`, not the attribute, so we need to access it as a property of the element
-          const name = inputElement.getAttribute("name"); // name is an attribute, so getAttribute works
-          const value = inputElement.value; // value is a property, so we access it directly
-          console.log(`${name}: ${value}`);
-        });
+      function displayUserCardInBrowser(user) {
+        const userCardHtml = generateUserCard(user);
+        document.getElementById("current-user").innerHTML = userCardHtml;
       }
 
-      window.printcurrObj = function () {
-        printFields("#interaction-input");
-      };
+      displayUserCardInBrowser(user);
 
-      const postHtml = generateEntityHtml(new Post());
+      function displayPostsInBrowser(posts) {
+        let postsHtml = "";
 
-      const productHtml = generateEntityHtml(new Product());
+        for (let post of posts) {
+          postsHtml += generatePostCard(post);
+        }
 
-      // console.log(postHtml);
+        document.getElementById("current-posts").innerHTML = postsHtml;
+      }
 
-      console.log(productHtml);
+      // Listen for Websockets event received by Server - and populate Posts
+      document.addEventListener("topPostsReceived", function (e) {
+        const postsData = e.detail;
+        const posts = postsData.map((data) => new Post(data));
+        displayPostsInBrowser(posts);
+      });
 
-      var client = new WebSocketClient();
+      document.addEventListener("postScoresReceived", (event) => {
+        const scores = event.detail;
+        console.log("Received Scores:", scores);
 
-      window.establishConnection = function () {
-        client.establishConnection();
-      };
+        // Construct the HTML representation for scores
+        const scoresCardHtml = generateScoresCard(scores);
 
-      window.sendMessage = function sendMessage() {
-        client.sendMessage("Hello, server!");
-      };
+        // Insert into the current-scores div
+        const scoresContainer = document.getElementById("current-scores");
+        scoresContainer.innerHTML = scoresCardHtml;
+      });
 
-      window.closeConnection = function () {
-        client.closeConnection();
-      };
-    </script> -->
+      function displayCardInBrowser() {
+        const userCardHtml = generateUserCard(/* User instance */);
+        const postCardHtml = generatePostCard(/* Post instance */);
+
+        // Assuming you have a container div in your HTML to hold these cards
+        document.getElementById("cardsContainer").innerHTML += userCardHtml;
+        document.getElementById("cardsContainer").innerHTML += postCardHtml;
+      }
+    </script>
 
     <script>
       var modal = document.getElementById("myModal");

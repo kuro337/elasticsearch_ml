@@ -1,20 +1,22 @@
 """
 Elastic Search Class for ES Service
 """
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union, Type, Tuple
 from elasticsearch import Elasticsearch, ConnectionError
 
 from model.interface import ESDocument
+from numpy import sort
 
 from .index.index import (
     create_index,
     delete_index,
     list_indices_and_mappings,
     print_document_count,
+    list_all_indices,
 )
 
 from .knnsearch.semantic_search import semantic_search
-from .document.fetch_documents import fetch_documents
+from .document.fetch_documents import fetch_documents, search_by
 from .document.insert_document import insert_document
 
 from .exceptions.es_exceptions import (
@@ -41,7 +43,9 @@ class ElasticSearchService:
         Abstracts the creation of the ElasticSearch Service
         """
         try:
-            return cls(cert_location=cert_location, host=host, port=port)
+            client = cls(cert_location=cert_location, host=host, port=port)
+            print("ElasticSearch Client Successfully Created!")
+            return client
         except SSLCertificateNotProvided as e:
             print(f"SSL Certificate error: {str(e)}")
         except ElasticsearchConnectionError as e:
@@ -68,14 +72,16 @@ class ElasticSearchService:
 
     def create_index(
         self,
-        model: ESDocument | str,
+        model: Union[Type[ESDocument], ESDocument, str],
         index_name: Optional[str] = None,
         embedding: bool = False,
     ) -> None:
         """
         Create an Index in Elasticsearch
         """
-        create_index(self.client, model, index_name, embedding)
+        create_index(
+            self.client, model=model, index_name=index_name, embedding=embedding
+        )
 
     def delete_index(
         self,
@@ -95,7 +101,7 @@ class ElasticSearchService:
         """
         Inserts a document into the corresponding index in Elasticsearch.
         """
-        insert_document(self.client, document, index_name, id)
+        insert_document(self.client, document=document, index_name=index_name, id=id)
 
     def list_indices_and_mappings(self, index: str):
         """
@@ -109,27 +115,80 @@ class ElasticSearchService:
         """
         print_document_count(self.client, index)
 
-    def fetch_documents(
+    def query(
         self,
         index_name: str,
         filter_conditions: Optional[Dict[str, Any]] = None,
+        query: Optional[Dict[str, Any]] = None,
+        sort_by: Optional[Tuple[str, str]] = None,
+        keyword: bool = True,
     ) -> List[Dict]:
         """
         Fetch documents from an Index
          - Optionally Specify Fields and Values to Filter by
+         - Filter results if the Field is a @Keyword
+         - Queries the field as a Keyword - pass keyword=False to query as a Text Field
 
-        Usage
-
+        @Usage
         ```python
-        filter_conditions = {"author": "JohnDoe"}
-        documents = fetch_all_documents(
-          index_name="posts",
-          filter_conditions=filter_conditions
-          )
+        # Get All Docs for Index
+        documents = es_service.fetch_documents(index_name="user_post_scores")
+        for doc in documents:
+            print(doc)
+
+        # Filter Docs by a Condition
+        filter_conditions = {"username": user.username}
+
+        documents = es_service.query(
+             index_name="user_post_scores",
+             filter_conditions=filter_conditions,
+             sort_by=("score", "desc"),
+         )
 
         ```
         """
-        return fetch_documents(self.client, index_name, filter_conditions)
+        return fetch_documents(
+            self.client,
+            index_name=index_name,
+            filter_conditions=filter_conditions,
+            query=query,
+            sort_by=sort_by,
+            keyword=keyword,
+        )
+
+    def search_by(
+        self,
+        index_name: str,
+        filter_conditions: Optional[Dict[str, Any]] = None,
+        query: Optional[Dict[str, Any]] = None,
+        sort_by: Optional[Tuple[str, str]] = None,
+        keyword: bool = True,
+    ):
+        """
+        Search an Index
+
+        @Usage
+        ```py
+        # Get all Documents that match a List[post_ids]
+
+        post_query_body = {"post_id": post_ids}
+
+        post_documents = es_service.search_by(
+            index_name="posts", filter_conditions=post_query_body
+        )
+
+        # print posts
+        ```
+        """
+        return search_by(
+            self.client,
+            index_name=index_name,
+            filter_conditions=filter_conditions,
+            query=query,
+            sort_by=sort_by,
+            keyword=keyword,
+            size=100,
+        )
 
     def semantic_search(
         self,
@@ -226,3 +285,6 @@ class ElasticSearchService:
         Print Hello ES!
         """
         print("Hello ES!")
+
+    def list_indices(self):
+        list_all_indices(self.client)

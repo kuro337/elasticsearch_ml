@@ -22,6 +22,14 @@ pip install pylint pydantic elasticsearch fastapi uvicorn gunicorn
 # To use packages from other Directory it should have a setup.py file
 # To install SBERT in the Environment
 pip install -e /home/chin/projects/Search/Elasticsearch/SBERT
+pip install -e /home/chin/projects/Search/Elasticsearch/Stats
+
+pip install mock
+
+venv310/lib/python3.10/site-packages/Stats
+
+source /home/chin/projects/Search/Elasticsearch/Backend/venv310/bin/activate
+python3 app.py
 
 # Setting up Linting
 which pylint

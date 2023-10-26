@@ -1,83 +1,112 @@
 """
-Websockets + REST HTTP Server
+@Backend
+@Websockets 
 
-Run from Backend/server
+- Async Server utilizing FastAPI and Websockets
+- Provides Coordination for a Real Time Machine Learning Recommendation System
+- Provides an Interface and fully featured ElasticSearch Client 
+- Model Training , Scoring and Caching
 
-Understands directory structure 
+@ Run
+uvicorn async_server.server:app --reload
 
-python -m async_server.server
+@ Path: Backend/server/
 """
 import json
-
-from utils.serialize import serialize_ws_data_esdoc
-
-
-from elastic_search.es_service import ElasticSearchService
-
-
-from exceptions.server_exceptions import UnknownESEntityError
 
 from fastapi import FastAPI
 from fastapi import WebSocket
 
+from utils.root_serialize import serialize_client_message
 
-if __name__ == "__main__":
-    print(__package__)
+from handlers.insert_document import serialize_and_insert_document
+from handlers.get_top_posts import get_user_top_posts
+from handlers.train_model import train_model
+from handlers.info import socket_info
 
+from elastic_search.es_service import ElasticSearchService
+
+from exceptions.server_exceptions import (
+    DocumentInsertionError,
+    RecommendationSystemInternalError,
+    GLMModelTrainingFailure,
+)
+
+client = ElasticSearchService.create_service(cert_location="async_server/ca.crt")
 
 app = FastAPI()
-
-# es_client = ElasticSearchService.create_service(cert_location="ssl/ca.crt")
-
-
-@app.get("/")
-async def read_root():
-    """
-    Root Endpoint
-
-    @Response: Hello World
-    """
-    return {"Hello": "World"}
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """
-    Websockets Endpoint
+      @Websockets /ws
+
+      @Shape
+      @ClientRequest
+
+      ```json
+      message = {
+      action: "getTopPosts",
+      payload: {
+        entity: "User",
+        data: user
+      }
+    };
+    ```
     """
     print(f"Websocket endpoint: {websocket}")
 
     await websocket.accept()
     while True:
         data = await websocket.receive_text()
-        print(f"Message received:\n {data}")
+        action, payload = serialize_client_message(data)
 
-        # Deserialize the JSON string
-        data_dict = json.loads(data)
+        if not action:
+            continue
 
-        print(f"Entity received:\n {data_dict.get('entity')}")
+        print(f"Action received:\n {action}")
 
-        print(f"Data received:\n {data_dict.get('data')}")
+        if action == "ws_help":
+            await socket_info(websocket, payload)
 
-        try:
-            entity_instance = serialize_ws_data_esdoc(data)
-            print(f"Created instance: {entity_instance}")
+        elif action == "sendEntity":
+            try:
+                await serialize_and_insert_document(websocket, client, payload)
+            except DocumentInsertionError as e:
+                await websocket.send_text(f"Error: {e}")
 
-            # ... you can now interact with the entity instance ...
+        elif action == "getTopPosts":
+            print(f"Getting top posts for user")
+            try:
+                await get_user_top_posts(client, payload, websocket)
 
-        except UnknownESEntityError as e:
-            print(f"Error: {e}")
-            await websocket.send_text(f"Error: {e}")
+            except RecommendationSystemInternalError as e:
+                await websocket.send_text(f"Error: {e}")
 
-        # es_client.doc_count(index=entity_instance.get_index_name())
-        entity_instance.get_mapping()
+        elif action == "trainModel":
+            print(f"Training Model")
+            try:
+                await train_model(client, websocket)
+            except GLMModelTrainingFailure as e:
+                await websocket.send_text(f"Error: {e}")
 
-        await websocket.send_text(f"Message text was: {data}")
+            await websocket.send_text(f"Model Trained and Indexed Successfully!")
+
+        else:
+            await socket_info(websocket, payload)
+
+        await websocket.send_text(f"{action} Success!")
 
 
-# To run: uvicorn main:app --reload
+@app.get("/")
+async def read_root():
+    """
+    @REST
+    @GET
 
-# uvicorn server:app --reload
+    - Default HTTP REST Endpoint for Server
 
-# Run from Backend/server
-# uvicorn async_server.server:app --reload
+    @Response: Hello World
+    """
+    return {"Hello": "World"}

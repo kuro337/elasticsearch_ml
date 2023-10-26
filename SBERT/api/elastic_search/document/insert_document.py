@@ -25,11 +25,12 @@ def insert_document(
     """
 
     index_name = index_name or document.get_index_name()
+    doc_id = id or document.hash()
 
     try:
         # Insertion
         response = client.index(
-            index=index_name, id=id, document=document.dump_document()
+            index=index_name, id=doc_id, document=document.dump_document()
         )
         if response["_shards"]["failed"] > 0:
             raise ElasticsearchInsertionError(f"Failed to insert document: {response}")

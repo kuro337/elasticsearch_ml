@@ -15,7 +15,7 @@ ENTITY_CLASSES = {
 }
 
 
-def serialize_ws_data_esdoc(data: str) -> ESDocument:
+def serialize_dict_to_esdoc(data: dict) -> ESDocument:
     """
     Create an instance of the specified entity class with the provided data.
 
@@ -23,10 +23,10 @@ def serialize_ws_data_esdoc(data: str) -> ESDocument:
     :param data: The data to pass to the entity class's constructor.
     :return: An instance of the specified entity class, or None if the class name is invalid.
     """
-    http_req = json.loads(data)
+    print("Serializing dict to ESDocument")
 
-    entity_type = http_req.get("entity")
-    entity_data = http_req.get("data")
+    entity_type = data.get("entity")
+    entity_data = data.get("data")
 
     print(f"Entity received:\n {entity_type}")
 
@@ -38,21 +38,4 @@ def serialize_ws_data_esdoc(data: str) -> ESDocument:
 
     # Create an instance of the class
     instance = entity_class(**entity_data)
-    return instance
-
-
-def serialize_json_esdoc(entity_type: str, data: dict) -> ESDocument:
-    """
-    Create an instance of the specified entity class with the provided data.
-
-    :param entity_type: The name of the entity class to instantiate.
-    :param data: The data to pass to the entity class's constructor.
-    :return: An instance of the specified entity class, or None if the class name is invalid.
-    """
-    entity_class = ENTITY_CLASSES.get(entity_type)
-    if entity_class is None:
-        raise UnknownESEntityError(entity_type)
-
-    # Create an instance of the class
-    instance = entity_class(**data)
     return instance

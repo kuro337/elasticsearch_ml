@@ -7,6 +7,7 @@ sudo sysctl -w vm.max_map_count=262144
 cd Cluster/
 docker-compose up -d
 docker-compose down
+docker-compose down -v
 
 docker stats
 

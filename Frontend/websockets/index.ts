@@ -12,3 +12,5 @@ export * from "./src/entity/models/interaction";
 export { createEntityFromInputs } from "./src/entity/serializeEntity";
 
 export { mapEntityStrToClass } from "./src/entity/entityMapper";
+
+export * from "./src/hydrate/hydrate";
