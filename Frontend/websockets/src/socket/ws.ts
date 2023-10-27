@@ -1,7 +1,20 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { handleRecommendationResponse } from "./handlers/recommendations";
+import { handleRecommendationResponseDirect } from "./handlers/recommendations";
+import { handleSimilarEntitiesResponse } from "./handlers/similarity";
+
+const actionHandlers: { [key: string]: Function } = {
+  getTopPosts: handleRecommendationResponseDirect,
+  similar_entities: handleSimilarEntitiesResponse,
+};
+
+export interface WSResponse {
+  data: {
+    action: string;
+    results: any;
+  };
+}
 
 export class WebSocketClient {
   private webSocket: WebSocket | null = null;
@@ -29,48 +42,31 @@ export class WebSocketClient {
         console.log("Connection closed", event);
       };
 
-      this.webSocket.onmessage = handleRecommendationResponse;
+      this.webSocket.onmessage = (event: MessageEvent<any>) => {
+        console.log("initial handler for message", event);
 
-      // this.webSocket.onmessage = (event) => {
-      //   console.log("Received message:", event.data.action);
+        if (
+          typeof event.data === "string" &&
+          !event.data.trim().startsWith("{")
+        ) {
+          console.log("Received Plain String from Backend:", event.data);
+          return;
+        }
 
-      //   try {
-      //     const data = JSON.parse(event.data);
-      //     console.log("Data Parsed");
+        try {
+          const data = JSON.parse(event.data);
+          const handler = actionHandlers[data.data.action];
+          if (handler) {
+            handler(data);
+          } else {
+            console.log("Unknown action or data not in expected format");
+          }
+        } catch (error) {
+          console.error("Error parsing message as JSON:", error);
+        }
+      };
 
-      //     if (
-      //       data &&
-      //       data.data &&
-      //       data.data.action &&
-      //       data.data.action === "getTopPosts"
-      //     ) {
-      //       let sortedPosts = data.data.results.posts || [];
-
-      //       if (data.data.results.scores) {
-      //         sortedPosts = sortPostsByScores(
-      //           sortedPosts,
-      //           data.data.results.scores
-      //         );
-      //       }
-
-      //       const postsEvent = new CustomEvent("topPostsReceived", {
-      //         detail: sortedPosts,
-      //       });
-      //       document.dispatchEvent(postsEvent);
-
-      //       if (data.data.results.scores) {
-      //         const scoresEvent = new CustomEvent("postScoresReceived", {
-      //           detail: data.data.results.scores,
-      //         });
-      //         document.dispatchEvent(scoresEvent);
-      //       }
-      //     } else {
-      //       console.log("Action not found or data not in expected format");
-      //     }
-      //   } catch (error) {
-      //     console.log("Received Message from Backend: ", event.data);
-      //   }
-      // };
+      // this.webSocket.onmessage = handleRecommendationResponse;
 
       this.webSocket.onerror = (error) => {
         console.log("WebSocket Error: ", error);

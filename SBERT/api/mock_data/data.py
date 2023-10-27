@@ -51,6 +51,7 @@ user_3 = User(
     timestamp="2023-10-09T12:34:56",
 )
 
+
 post_1 = Post(
     lang="python",
     title="Very Great Post",
@@ -193,7 +194,32 @@ user_scores = [
     ),
 ]
 
+similar_user = User(
+    username="Menoscha Zaviar",
+    first_name="Menoscha",
+    last_name="Zaviar",
+    email="Menoscha.Zaxiar@aol.com",
+    gender="Female",
+    country="USA",
+    age=23,
+    timestamp="2023-10-09T12:34:56",
+)
+
+similar_post = Post(
+    lang="java",
+    title="Very Great Posts",
+    short_title="This is some random posts!",
+    description="Read this post to read words that are written by me.",
+    author="Null User",
+    tags="java, oop, elasticsearch",
+    timestamp="2023-10-09T12:34:56",
+    post_id="virtual_th",
+    component="post100",
+    dynamic_path="/path/to/post1--",
+    render_func="pppp_post",
+)
+
 users = [user_1, user_2, user_3]
 posts = [post_1, post_2, post_3, post_4, post_5, post_6]
 
-documents: List[ESDocument] = [user_1, user_2, post_1, post_2, post_3, interaction_1]
+documents: List[ESDocument] = [*users, *posts, *user_scores]

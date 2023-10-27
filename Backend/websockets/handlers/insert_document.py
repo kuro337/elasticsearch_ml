@@ -5,8 +5,11 @@
 - Serialize Document and Insert into Elasticsearch
 """
 
+
+from ws_utils.serialize import serialize_dict_to_esdoc
+
+
 from fastapi import WebSocket
-from utils.serialize import serialize_dict_to_esdoc
 from elastic_search.es_service import ElasticSearchService
 from exceptions.server_exceptions import DocumentInsertionError, UnknownESEntityError
 from elastic_search.exceptions.es_exceptions import ElasticsearchInsertionError

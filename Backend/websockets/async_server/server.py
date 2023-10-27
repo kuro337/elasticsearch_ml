@@ -13,18 +13,19 @@ uvicorn async_server.server:app --reload
 @ Path: Backend/server/
 """
 import json
+from typing import Dict, List, Any
 
 from fastapi import FastAPI
 from fastapi import WebSocket
 
-from utils.root_serialize import serialize_client_message
+from ml.transformer.sbert.sbert_transformer import SbertTransformer
+from elastic_search.es_service import ElasticSearchService
 
 from handlers.insert_document import serialize_and_insert_document
 from handlers.get_top_posts import get_user_top_posts
 from handlers.train_model import train_model
 from handlers.info import socket_info
-
-from elastic_search.es_service import ElasticSearchService
+from handlers.similarity import get_similar_entities
 
 from exceptions.server_exceptions import (
     DocumentInsertionError,
@@ -32,7 +33,15 @@ from exceptions.server_exceptions import (
     GLMModelTrainingFailure,
 )
 
+from ws_utils.serialize import serialize_dict_to_esdoc
+
+from ws_utils.serialize import serialize_dict_to_esdoc
+
+from ws_utils.root_serialize import serialize_client_message
+
+
 client = ElasticSearchService.create_service(cert_location="async_server/ca.crt")
+transformer = SbertTransformer()
 
 app = FastAPI()
 
@@ -73,6 +82,12 @@ async def websocket_endpoint(websocket: WebSocket):
         elif action == "sendEntity":
             try:
                 await serialize_and_insert_document(websocket, client, payload)
+            except DocumentInsertionError as e:
+                await websocket.send_text(f"Error: {e}")
+
+        elif action == "similar_entities":
+            try:
+                await get_similar_entities(client, transformer, payload, websocket)
             except DocumentInsertionError as e:
                 await websocket.send_text(f"Error: {e}")
 

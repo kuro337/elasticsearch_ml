@@ -8,16 +8,19 @@
 import json
 from fastapi import WebSocket
 from elastic_search.es_service import ElasticSearchService
-from utils.serialize import serialize_dict_to_esdoc
+
+from ws_utils.serialize import serialize_dict_to_esdoc
+
 from elastic_search.exceptions.es_exceptions import ElasticsearchInsertionError
+
 from exceptions.server_exceptions import (
     UnknownESEntityError,
-    DocumentInsertionError,
     RecommendationSystemInternalError,
     NotUserEntityError,
 )
 
-from app import query_posts_for_user
+
+from methods.methods import query_posts_for_user
 
 
 async def get_user_top_posts(

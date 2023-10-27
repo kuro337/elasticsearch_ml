@@ -1,4 +1,4 @@
-import { ElasticSearchDocument } from "./models/ElasticSearchInterface";
+import { ElasticSearchDocument } from "./models/ESInterface";
 
 type InputValue = string | number | string[] | number[]; // JSON serializable types
 

@@ -74,23 +74,22 @@ class ElasticSearchService:
         self,
         model: Union[Type[ESDocument], ESDocument, str],
         index_name: Optional[str] = None,
-        embedding: bool = False,
     ) -> None:
         """
         Create an Index in Elasticsearch
         """
-        create_index(
-            self.client, model=model, index_name=index_name, embedding=embedding
-        )
+        create_index(self.client, model=model, index_name=index_name)
 
     def delete_index(
         self,
-        index_name: str,
+        model: Union[Type[ESDocument], ESDocument, str],
+        index_name: Optional[str] = None,
     ) -> None:
         """
         Create an Index in Elasticsearch
         """
-        delete_index(self.client, index_name)
+        # delete_index(self.client, index_name)
+        delete_index(self.client, model=model, index_name=index_name)
 
     def insert_document(
         self,
@@ -162,10 +161,12 @@ class ElasticSearchService:
         filter_conditions: Optional[Dict[str, Any]] = None,
         query: Optional[Dict[str, Any]] = None,
         sort_by: Optional[Tuple[str, str]] = None,
-        keyword: bool = True,
+        keyword: bool = False,
     ):
         """
         Search an Index
+
+        - If the Field is a Multi Field - pass `keyword=True` to search the Keyword Field
 
         @Usage
         ```py

@@ -1,0 +1,8 @@
+setup.py
+websockets/Websockets.egg-info/PKG-INFO
+websockets/Websockets.egg-info/SOURCES.txt
+websockets/Websockets.egg-info/dependency_links.txt
+websockets/Websockets.egg-info/top_level.txt
+websockets/ws_utils/__init__.py
+websockets/ws_utils/root_serialize.py
+websockets/ws_utils/serialize.py

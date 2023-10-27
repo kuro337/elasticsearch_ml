@@ -10,7 +10,7 @@ export * from "./src/entity/models/user";
 export * from "./src/entity/models/interaction";
 
 export { createEntityFromInputs } from "./src/entity/serializeEntity";
-
 export { mapEntityStrToClass } from "./src/entity/entityMapper";
+export { renderEntitiesOnSimilarityEvent } from "./src/entity/entityCardRenderer";
 
 export * from "./src/hydrate/hydrate";

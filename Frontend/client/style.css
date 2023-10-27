@@ -104,6 +104,13 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+#similar-content {
+  font-size: 1rem;
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
 .card {
   border: 1px solid #e0e0e0;
   padding: 10px;

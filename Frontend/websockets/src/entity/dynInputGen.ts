@@ -1,5 +1,5 @@
 import { get } from "http";
-import { ElasticSearchDocument } from "./models/ElasticSearchInterface";
+import { ElasticSearchDocument } from "./models/ESInterface";
 
 /*
  * @Interface for Model Decorator

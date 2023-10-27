@@ -1,4 +1,4 @@
-import { ElasticSearchDocument } from "./ElasticSearchInterface";
+import { ElasticSearchDocument } from "./ESInterface";
 import { html } from "../decorator";
 
 export class Interaction implements ElasticSearchDocument {

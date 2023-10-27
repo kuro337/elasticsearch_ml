@@ -1,8 +1,9 @@
-import { ElasticSearchDocument } from "./models/ElasticSearchInterface";
+import { ElasticSearchDocument, ValidEntityString } from "./models/ESInterface";
 import { User } from "./models/user";
 import { Product } from "./models/product";
 import { Post } from "./models/post";
 import { Interaction } from "./models/interaction";
+import { InvalidElasticsearchIndexError } from "./models/Exceptions";
 
 type ESDocConstructor<T extends ElasticSearchDocument> = new () => T;
 
@@ -41,4 +42,21 @@ export function mapEntityStrToClass(entityStr: string): EntityMapping | null {
     classConstructor,
     inputSelector,
   };
+}
+
+export function mapElasticsearchIndexToEntityStr(
+  indexName: string
+): ValidEntityString {
+  switch (indexName.toLowerCase()) {
+    case "users":
+      return "user";
+    case "products":
+      return "product";
+    case "posts":
+      return "post";
+    case "interactions":
+      return "interaction";
+    default:
+      throw new InvalidElasticsearchIndexError(indexName);
+  }
 }

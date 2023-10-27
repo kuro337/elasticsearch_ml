@@ -80,41 +80,24 @@ def search_by(
     query: Optional[Dict[str, Any]] = None,
     sort_by: Optional[Tuple[str, str]] = None,
     size: int = 100,
-    keyword: bool = True,
+    keyword: bool = False,
 ) -> List[Dict]:
-    """
-    Retrieve all documents from the specified index.
-
-    :param index_name: The name of the index from which to retrieve the documents.
-    :return: A list of documents from the specified index.
-
-    - Usage
-
-    ```python
-    filter_conditions = {"author": "JohnDoe"}
-    documents = fetch_all_documents(
-      index_name="posts",
-      filter_conditions=filter_conditions
-      )
-
-    ```
-
-    """
-    # Initialize an empty list to store the documents
+    """..."""
     documents = []
+
     if query:
         query_body = query
     elif filter_conditions:
-        query_body = {
-            "query": {
-                "bool": {
-                    "filter": [
-                        construct_term_query(field, value, keyword)
-                        for field, value in filter_conditions.items()
-                    ]
-                }
+        filters = [
+            construct_term_query(field, value, keyword)
+            for field, value in filter_conditions.items()
+        ]
+        if len(filters) == 1:
+            query_body = {"query": {"bool": {"filter": filters[0]}}}
+        else:
+            query_body = {
+                "query": {"bool": {"should": filters, "minimum_should_match": 1}}
             }
-        }
     else:
         query_body = {"query": {"match_all": {}}}
 
@@ -122,20 +105,17 @@ def search_by(
         field, order = sort_by
         query_body["sort"] = [{field: {"order": order}}]
 
-    print("Query Body", query_body)
+    print(
+        "Constructed Elasticsearch Query:", query_body
+    )  # Print the query being sent to Elasticsearch
 
-    # Change this part to use `search` instead of `scan`
     response = client.search(index=index_name, body=query_body, size=size)
-    documents = [doc["_source"] for doc in response["hits"]["hits"]]
-
-    print("Ran Query")
-    print(len(documents))
-    return documents
+    return [doc["_source"] for doc in response["hits"]["hits"]]
 
 
 def construct_term_query(field, value, keyword):
     """Constructs a term or terms query based on the provided value."""
     if isinstance(value, list):
-        return {"terms": {field + ".keyword" if keyword else "": value}}
+        return {"terms": {f"{field}.keyword" if keyword else field: value}}
     else:
-        return {"term": {field + ".keyword" if keyword else "": value}}
+        return {"term": {f"{field}.keyword" if keyword else field: value}}

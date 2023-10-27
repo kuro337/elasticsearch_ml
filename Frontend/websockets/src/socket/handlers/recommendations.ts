@@ -1,5 +1,5 @@
 import { sortPostsByScores } from "../../utils/sort_posts";
-
+import { WSResponse } from "../ws";
 export function handleRecommendationResponse(event: MessageEvent<any>) {
   console.log("Received Message from Backend:");
 
@@ -45,5 +45,32 @@ export function handleRecommendationResponse(event: MessageEvent<any>) {
     }
   } catch (error) {
     console.error("Error parsing message as JSON:", error);
+  }
+}
+
+export function handleRecommendationResponseDirect(data: WSResponse) {
+  console.log("Received Message from Backend:");
+
+  if (data && data.data && data.data.action) {
+    let sortedPosts = data.data.results.posts || [];
+    if (sortedPosts.length === 0) return;
+
+    if (data.data.results.scores) {
+      sortedPosts = sortPostsByScores(sortedPosts, data.data.results.scores);
+    }
+
+    const postsEvent = new CustomEvent("topPostsReceived", {
+      detail: sortedPosts,
+    });
+    document.dispatchEvent(postsEvent);
+
+    if (data.data.results.scores) {
+      const scoresEvent = new CustomEvent("postScoresReceived", {
+        detail: data.data.results.scores,
+      });
+      document.dispatchEvent(scoresEvent);
+    }
+  } else {
+    console.log("Data format is not as expected");
   }
 }

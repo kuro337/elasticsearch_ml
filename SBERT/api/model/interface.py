@@ -7,7 +7,7 @@ This Model is used to create the Elasticsearch Indexes and Mappings
 import hashlib
 import json
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Type
 from pydantic import BaseModel, root_validator
 
 
@@ -36,7 +36,6 @@ class ESDocument(BaseModel, ABC):
     def multi_type(
         primary_type: str = "keyword",
         secondary_type: str = "text",
-        ignore_above: int = None,
     ) -> dict:
         """
         @staticmethod
@@ -59,9 +58,7 @@ class ESDocument(BaseModel, ABC):
         """
         return {
             "type": primary_type,
-            "fields": {
-                secondary_type: {"type": secondary_type, "ignore_above": ignore_above}
-            },
+            "fields": {secondary_type: {"type": secondary_type}},
         }
 
     def hash(self):
@@ -95,3 +92,27 @@ class ESDocument(BaseModel, ABC):
         Returns the Document as a Dictionary
         """
         return self.model_dump(exclude_unset=True)
+
+
+class EmbeddingsDocument(ESDocument):
+    """Base class for all embedding documents."""
+
+    embedding: List[float]
+
+
+class ESDocumentWithEmbedding(ESDocument, ABC):
+    """Interface for all embedding documents."""
+
+    @abstractmethod
+    def get_primary_key(self) -> str:
+        """
+        @Abstract Method
+        @Override
+        Returning the Primary Key for the Document Subclass
+        """
+
+    @abstractmethod
+    def get_embedding_document(
+        self, embedding: List[float]
+    ) -> Type[EmbeddingsDocument]:
+        """Convert the document to its embedding representation."""

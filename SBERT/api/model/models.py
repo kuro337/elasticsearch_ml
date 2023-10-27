@@ -4,14 +4,14 @@ Types for Documents
 Also Available https://elasticsearch-dsl.readthedocs.io/en/latest/
 """
 
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Type
 from pydantic import StringConstraints, HttpUrl
 from typing_extensions import Annotated
 
-from model.interface import ESDocument
+from model.interface import ESDocument, EmbeddingsDocument, ESDocumentWithEmbedding
 
 
-class User(ESDocument):
+class User(ESDocumentWithEmbedding):
 
     """
     User Document
@@ -30,7 +30,7 @@ class User(ESDocument):
     ------------
     """
 
-    username: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
+    username: Annotated[str, StringConstraints(min_length=3)]
     first_name: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     last_name: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     email: Annotated[
@@ -43,10 +43,12 @@ class User(ESDocument):
     timestamp: Annotated[
         str, StringConstraints(min_length=8, strip_whitespace=True)
     ] = None
-    embedding: Optional[List[float]] = None
 
     def get_index_name(self) -> str:
         return "users"
+
+    def get_primary_key(self) -> str:
+        return "username"
 
     def get_mapping(self) -> Dict:
         return {
@@ -62,8 +64,14 @@ class User(ESDocument):
             }
         }
 
+    def get_embedding_document(
+        self, embedding: List[float]
+    ) -> Type[EmbeddingsDocument]:
+        """Convert the Post to its embedding representation."""
+        return UserEmbeddings(username=self.username, embedding=embedding)
 
-class Post(ESDocument):
+
+class Post(ESDocumentWithEmbedding):
     """
     Post Document
 
@@ -100,14 +108,14 @@ class Post(ESDocument):
 
     post_id: Annotated[str, StringConstraints(min_length=3)]
     component: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
-    author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     dynamic_path: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
-    author: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
     render_func: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
-    embedding: Optional[List[float]] = None
     timestamp: Annotated[
         str, StringConstraints(min_length=3, strip_whitespace=True)
     ] = None
+
+    def get_primary_key(self) -> str:
+        return "post_id"
 
     def get_index_name(self) -> str:
         return "posts"
@@ -129,6 +137,13 @@ class Post(ESDocument):
             }
         }
 
+    def get_embedding_document(
+        self, embedding: List[float]
+    ) -> Type[EmbeddingsDocument]:
+        """Convert the Post to its embedding representation."""
+
+        return PostEmbeddings(post_id=self.post_id, embedding=embedding)
+
 
 class Interaction(ESDocument):
     """
@@ -139,7 +154,9 @@ class Interaction(ESDocument):
     post_id: Annotated[str, StringConstraints(min_length=3)]
     timestamp: Optional[Annotated[str, StringConstraints(min_length=1)]] = None
     username: Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
-    embedding: Optional[List[float]] = None
+
+    def get_primary_key(self) -> str:
+        return "post_id"
 
     def get_index_name(self) -> str:
         return "interactions"
@@ -197,7 +214,7 @@ class Product(ESDocument):
     ------------
     """
 
-    id: int
+    product_id: int
     url: HttpUrl
     last_accessed: str
     ip_address: str
@@ -218,5 +235,77 @@ class Product(ESDocument):
                 "user_agent": {"type": "text"},
                 "array_of_dates": {"type": "date"},
                 "array_of_strings": {"type": "text"},
+            }
+        }
+
+
+class UserEmbeddings(ESDocument):
+    """
+    User Embeddings Document
+
+    JSON Payload:
+    ------------
+    {
+        "username": "JohnDoe",
+        "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+    }
+    ------------
+    """
+
+    username: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
+    embedding: List[float]
+
+    def get_primary_key(self) -> str:
+        return "username"
+
+    def get_index_name(self) -> str:
+        return "user_embeddings"
+
+    def get_mapping(self) -> Dict:
+        return {
+            "properties": {
+                "username": {"type": "keyword"},
+                "embedding": {
+                    "type": "dense_vector",
+                    "dims": 768,
+                    "index": True,
+                    "similarity": "cosine",
+                },
+            }
+        }
+
+
+class PostEmbeddings(ESDocument):
+    """
+    User Embeddings Document
+
+    JSON Payload:
+    ------------
+    {
+        "post_id": "jvmoop",
+        "embedding": [0.1, 0.2, 0.3, 0.4, 0.5]
+    }
+    ------------
+    """
+
+    post_id: Annotated[str, StringConstraints(min_length=3, strip_whitespace=True)]
+    embedding: List[float]
+
+    def get_primary_key(self) -> str:
+        return "post_id"
+
+    def get_index_name(self) -> str:
+        return "post_embeddings"
+
+    def get_mapping(self) -> Dict:
+        return {
+            "properties": {
+                "post_id": {"type": "keyword"},
+                "embedding": {
+                    "type": "dense_vector",
+                    "dims": 768,
+                    "index": True,
+                    "similarity": "cosine",
+                },
             }
         }

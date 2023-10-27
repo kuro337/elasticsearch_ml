@@ -352,7 +352,18 @@
           <div>
             <sl-button id="send-button" onclick="sendEntity()">Send</sl-button>
           </div>
+          <div>
+            <sl-button id="similarity_button" onclick="getSimilarEntities()"
+              >Get Similar Entities</sl-button
+            >
+          </div>
         </div>
+      </div>
+
+      <div id="similarity-content">
+        <div id="recommendation-header">Similar Content</div>
+
+        <div id="similar-content"></div>
       </div>
 
       <div id="myModal" class="modal">
@@ -452,6 +463,7 @@
         generateEntityHtml,
         createEntityFromInputs, // returns {entity:"User" , data : "userJsonObj"}
         mapEntityStrToClass,
+        renderEntitiesOnSimilarityEvent,
         generateScoresCard,
         generateUserCard,
         generatePostCard,
@@ -499,6 +511,28 @@
         // Structuring the message with an action and entity
         const message = {
           action: "sendEntity",
+          payload: entity,
+        };
+        console.log("Sending Entity Event:", message);
+
+        client.sendMessage(JSON.stringify(message));
+
+        clearInputs(inputSelector);
+        updateJsonDisplay();
+      };
+
+      window.getSimilarEntities = function () {
+        const { classConstructor, inputSelector } =
+          mapEntityStrToClass(currentEntity);
+        if (!classConstructor || !inputSelector) {
+          console.error(`${currentEntity} is not a valid System Entity.`);
+          return;
+        }
+
+        const entity = createEntityFromInputs(classConstructor, inputSelector);
+        // Structuring the message with an action and entity
+        const message = {
+          action: "similar_entities",
           payload: entity,
         };
         console.log("Sending Entity Event:", message);
@@ -571,6 +605,10 @@
       createAndDisplayEntity();
 
       window.createEntityFromInputs = createAndDisplayEntity;
+
+      // Listens for the usersReceived/postsReceived event and renders the entities in div#similar-content
+      renderEntitiesOnSimilarityEvent("similar-content", "users");
+      renderEntitiesOnSimilarityEvent("similar-content", "posts");
 
       /* WebSocket Functionality */
 

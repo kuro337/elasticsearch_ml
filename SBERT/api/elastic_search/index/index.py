@@ -3,82 +3,99 @@ ES Class function implementation to create and delete an index in Elasticsearch.
 """
 
 import json
-from typing import Dict, Optional, Union, Type
+import logging
+
+from typing import Optional, Union, Type
 from elasticsearch import Elasticsearch, NotFoundError, BadRequestError
 from model.interface import ESDocument
 from elastic_search.exceptions.es_exceptions import ElasticsearchIndexAlreadyExists
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 def create_index(
     client: Elasticsearch,
     model: Union[Type[ESDocument], ESDocument, str],
     index_name: Optional[str] = None,
-    embedding: bool = False,
 ) -> None:
     """
-    Create an Index in Elasticsearch
-    @param client: Elasticsearch client
-    @param model: Dict
-    @param index_name: Optional[str]
-    @param embedding: bool
+    Constructs an Index
 
-    Usage:
-
-    ```python
-    create_index(client, User, index_name, embedding)
-
-    ```
+    Can pass it an Instance , Class , or Document directly
     """
-    # index_name = index_name or (
-    #     model.get_index_name() if isinstance(model, ESDocument) else model
-    # )
-
-    # mappings = {"properties": {f"{key}": {"type": "text"} for key in model.keys()}}
-
-    # mappings = model.get_mapping()
+    logging.info("Starting the index creation process.")
 
     if isinstance(model, type) and issubclass(model, ESDocument):
         index_name = index_name or getattr(model, "get_index_name")(model)
         mappings = getattr(model, "get_mapping")(model)
-        print("Instance Class passed", index_name, mappings)
+        logging.info(
+            "Instance Class passed. Index name: %s, Mappings: %s", index_name, mappings
+        )
 
     elif isinstance(model, ESDocument):
         index_name = model.get_index_name()
         mappings = model.get_mapping()
-        print("Actual instance passed", index_name)
-    # If the model is a string
+        logging.info(
+            "Actual instance passed. Index name: %s, Mappings: %s", index_name, mappings
+        )
+
     else:
         index_name = index_name or model
+        logging.info("Model passed as string. Using index name: %s", index_name)
 
-    if embedding:
-        mappings["properties"]["embedding"] = {
-            "type": "dense_vector",
-            "dims": 768,
-            "index": True,
-            "similarity": "cosine",
-        }
     try:
+        logging.info("Attempting to create index with name: %s", index_name)
         client.indices.create(index=index_name, body={"mappings": mappings})
+        logging.info("Successfully created index with name: %s", index_name)
+
     except BadRequestError as e:
+        logging.error("BadRequestError encountered: %s", e)
         if e == "index_already_exists_exception":
+            logging.error("Index %s already exists.", index_name)
             raise ElasticsearchIndexAlreadyExists(
                 f"Index {index_name} already exists"
             ) from e
+
     except Exception as e:
-        # This will catch any other exceptions that are being raised.
-        print(f"An unexpected error occurred: {e}")
+        logging.error("An unexpected error occurred: %s", e)
 
-    print(f"Index {index_name} created successfully.")
+    logging.info("Index creation process completed for index: %s", index_name)
 
 
-def delete_index(client: Elasticsearch, index_name: str) -> None:
+def delete_index(
+    client: Elasticsearch,
+    model: Union[Type[ESDocument], ESDocument, str],
+    index_name: Optional[str] = None,
+) -> None:
     """
     Delete an Index in Elasticsearch
     """
+    logging.info("Starting the index deletion process.")
+
+    if isinstance(model, type) and issubclass(model, ESDocument):
+        index_name = index_name or getattr(model, "get_index_name")(model)
+        logging.info("Instance Class passed. Index name: %s", index_name)
+
+    elif isinstance(model, ESDocument):
+        index_name = model.get_index_name()
+        logging.info("Actual instance passed. Index name: %s", index_name)
+
+    else:
+        index_name = index_name or model
+        logging.info("Model passed as string. Using index name: %s", index_name)
+
     try:
+        logging.info("Attempting to delete index with name: %s", index_name)
         client.indices.delete(index=index_name)
+        logging.info("Successfully deleted index with name: %s", index_name)
+
+    except NotFoundError:
+        logging.error("Index %s not found.", index_name)
     except Exception as e:
-        print(e)
+        logging.error("An unexpected error occurred: %s", e)
+
+    logging.info("Index deletion process completed for index: %s", index_name)
 
 
 def list_indices_and_mappings(client: Elasticsearch, index: str) -> None:
